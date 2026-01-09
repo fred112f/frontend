@@ -38,7 +38,9 @@ def train():
     """
     trainer_args = {"max_epochs": 1,'limit_train_batches': 0.05, 'accelerator': DEVICE}
     train, val, test = load_data(processed_dir='data/processed/')
-    train, val, test = torch.utils.data.DataLoader(train, persistent_workers=True, num_workers=9), torch.utils.data.DataLoader(val, persistent_workers=True, num_workers=9), torch.utils.data.DataLoader(test, persistent_workers=True, num_workers=9)
+    train = torch.utils.data.DataLoader(train, persistent_workers=True, num_workers=9)
+    val = torch.utils.data.DataLoader(val, persistent_workers=True, num_workers=9)
+    test = torch.utils.data.DataLoader(test, persistent_workers=True, num_workers=9)
     
     model = ANNClassifier()
     trainer = get_trainer(model, trainer_args=trainer_args)
