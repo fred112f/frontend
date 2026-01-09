@@ -1,168 +1,303 @@
-import kagglehub
-import os
-from pathlib import Path
-import torch
-'''
-import torch
-import typer
+# =========================
+# Imports
+# =========================
 
+import kagglehub                # Download datasets from Kaggle
+import os                       # File and path utilities
+import PIL                      # Image processing
+import torch                    # PyTorch core
 
-def normalize(images: torch.Tensor) -> torch.Tensor:
-    """Normalize images."""
-    return (images - images.mean()) / images.std()
+from pathlib import Path        # OS-independent path handling
+from PIL import Image           # PIL image loader
 
-
-def preprocess_data(raw_dir: str, processed_dir: str) -> None:
-    """Process raw data and save it to processed directory."""
-    train_images, train_target = [], []
-    for i in range(6):
-        train_images.append(torch.load(f"{raw_dir}/train_images_{i}.pt"))
-        train_target.append(torch.load(f"{raw_dir}/train_target_{i}.pt"))
-    train_images = torch.cat(train_images)
-    train_target = torch.cat(train_target)
-
-    test_images: torch.Tensor = torch.load(f"{raw_dir}/test_images.pt")
-    test_target: torch.Tensor = torch.load(f"{raw_dir}/test_target.pt")
-
-    train_images = train_images.unsqueeze(1).float()
-    test_images = test_images.unsqueeze(1).float()
-    train_target = train_target.long()
-    test_target = test_target.long()
-
-    train_images = normalize(train_images)
-    test_images = normalize(test_images)
-
-    torch.save(train_images, f"{processed_dir}/train_images.pt")
-    torch.save(train_target, f"{processed_dir}/train_target.pt")
-    torch.save(test_images, f"{processed_dir}/test_images.pt")
-    torch.save(test_target, f"{processed_dir}/test_target.pt")
-
-
-def corrupt_mnist() -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
-    """Return train and test datasets for corrupt MNIST."""
-    train_images = torch.load("data/processed/train_images.pt")
-    train_target = torch.load("data/processed/train_target.pt")
-    test_images = torch.load("data/processed/test_images.pt")
-    test_target = torch.load("data/processed/test_target.pt")
-
-    train_set = torch.utils.data.TensorDataset(train_images, train_target)
-    test_set = torch.utils.data.TensorDataset(test_images, test_target)
-    return train_set, test_set
-'''
-root = 'data/'
-raw_dir = os.path.join(root, 'raw/datasets/msambare/fer2013/versions/1/')
-processed_dir = os.path.join(root, 'processed')
-
-def create_data_folders(raw_dir, processed_dir):
-    Path(raw_dir).mkdir(parents=True, exist_ok=True)
-    Path(processed_dir).mkdir(parents=True, exist_ok=True)
-
-from PIL import Image
 from torchvision import transforms
 from torchvision.datasets import DatasetFolder
 
-# Function to open images
-def pil_loader(path):
+from typing import Callable, Dict, Literal
+
+
+# =========================
+# Configuration / Hyperparameters
+# =========================
+
+# Kaggle dataset identifiers
+kaggle_id = 'msambare/fer2013'
+data_version_path = '1'
+
+# Preprocessing parameters
+root = 'data'
+raw_str = 'raw'
+processed_str = 'processed'
+trainvalsplit = 0.8
+seed = 42
+
+
+# =========================
+# Type aliases (for clarity)
+# =========================
+
+# A transform maps a PIL image → torch tensor
+Transform = Callable[[Image.Image], torch.Tensor]
+
+# Allowed dataset split modes
+TrainValTestMode = Literal["train", "val", "test"]
+
+
+# =========================
+# Directory utilities
+# =========================
+
+def create_processed_dir(processed_dir: str) -> None:
+    """
+    Create the data/processed directory if it does not exist.
+    """
+    Path(processed_dir).mkdir(parents=True, exist_ok=True)
+
+
+# =========================
+# Image loading & transforms
+# =========================
+
+def pil_loader(path: str) -> PIL.Image.Image:
+    """
+    Load an image from disk using PIL and convert it to grayscale.
+    FER2013 images are single-channel (1 × H × W).
+    """
     with open(path, 'rb') as f:
         img = Image.open(f)
-        return img.convert('L')# grayscale==1 channel
+        return img.convert('L')  # grayscale (1 channel)
 
-# Transform: convert to tensor and optionally normalize
-def get_transform():
+
+def get_transform() -> Transform:
+    """
+    Create a preprocessing pipeline:
+    - Convert PIL image to tensor in range [0, 1]
+    - Normalize to range [-1, 1]
+    """
     transform = transforms.Compose([
-        transforms.ToTensor(),  # converts PIL image to tensor with values [0,1]
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5], std=[0.5]),
     ])
     return transform
 
-def get_dataset(root, transform):
+
+# =========================
+# Dataset construction
+# =========================
+
+def get_dataset(root: str, transform: Transform) -> torch.utils.data.Dataset:
+    """
+    Load an image dataset from a directory using torchvision's DatasetFolder.
+    Assumes images are stored in class-labeled subdirectories.
+    """
     dataset = DatasetFolder(
-        root=root,  # replace with your folder path
+        root=root,
         loader=pil_loader,
         extensions=['jpg'],
         transform=transform
     )
     return dataset
 
-def get_image_labels_tensors(dataset):
+
+# =========================
+# Tensor extraction helpers
+# =========================
+
+def get_image_labels_tensors(
+    dataset: torch.utils.data.Dataset
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Convert an entire Dataset into stacked image and label tensors.
+    """
     images_list = []
     labels_list = []
 
     for img, label in dataset:
-        images_list.append(img)        # img is already a tensor from transform
-        labels_list.append(label)      # label is an integer
+        images_list.append(img)     # Tensor: [1, H, W]
+        labels_list.append(label)   # Integer class index
 
-    # Stack into single tensors
-    images_tensor = torch.stack(images_list)   # shape: [num_images, 3, H, W]
-    labels_tensor = torch.tensor(labels_list)  # shape: [num_images]
+    images_tensor = torch.stack(images_list)    # [N, 1, H, W]
+    labels_tensor = torch.tensor(labels_list)   # [N]
     return images_tensor, labels_tensor
 
-def save_image_labels(images, labels, processed_dir, traintest):
-    torch.save(images,os.path.join(processed_dir,f"{traintest}_images.pt"))
-    torch.save(labels,os.path.join(processed_dir,f"{traintest}_target.pt"))
 
-def save_metadata(metadata, processed_dir):
-    torch.save(metadata, os.path.join(processed_dir,'class_to_idx.pt'))
+# =========================
+# Saving utilities
+# =========================
 
-def get_split_index(N, frac=0.8):
-    split = int(frac * N)  # 80%
-    indices = torch.randperm(N)  # shuffled indices
+def save_image_labels(
+    images: torch.Tensor,
+    labels: torch.Tensor,
+    processed_dir: str,
+    traintest: TrainValTestMode
+) -> None:
+    """
+    Save image and label tensors for a specific split.
+    """
+    torch.save(images, os.path.join(processed_dir, f"{traintest}_images.pt"))
+    torch.save(labels, os.path.join(processed_dir, f"{traintest}_target.pt"))
+
+
+def save_metadata(metadata: Dict[str, int], processed_dir: str) -> None:
+    """
+    Save class-to-index mapping (used for label decoding).
+    """
+    torch.save(metadata, os.path.join(processed_dir, 'class_to_idx.pt'))
+
+
+# =========================
+# Train/validation split
+# =========================
+
+def get_split_index(
+    N: int,
+    frac: float = 0.8
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Generate reproducible shuffled indices for train/validation splitting.
+    """
+    split = int(frac * N)
+    g = torch.Generator().manual_seed(seed)
+    indices = torch.randperm(N, generator=g)
+
     train_idx = indices[:split]
-    val_idx   = indices[split:]
+    val_idx = indices[split:]
     return train_idx, val_idx
 
-def save_data(train_dataset, test_dataset, processed_dir):
-    #Split full training set into training and validation set
+
+# =========================
+# Dataset serialization
+# =========================
+
+def save_data(
+    train_dataset: torch.utils.data.Dataset,
+    test_dataset: torch.utils.data.Dataset,
+    processed_dir: str,
+    trainvalsplit: float
+) -> None:
+    """
+    Save train, validation, and test datasets as .pt files.
+    """
+    # Convert full training dataset to tensors
     train_images_all, train_labels_all = get_image_labels_tensors(train_dataset)
-    train_idx, val_idx = get_split_index(train_images_all.size(0), 0.8)
-    #Save training and validation sets
-    save_image_labels(train_images_all[train_idx], train_labels_all[train_idx], processed_dir, 'train')
-    save_image_labels(train_images_all[val_idx], train_labels_all[val_idx], processed_dir, 'val')
-    #Save test set
-    save_image_labels(*get_image_labels_tensors(test_dataset), processed_dir, 'test')
 
-def preprocess_data(raw_dir, processed_dir):
-    #Create data folders if they don't already exist
-    create_data_folders(raw_dir, processed_dir)
+    # Split into train and validation
+    train_idx, val_idx = get_split_index(
+        train_images_all.size(0),
+        frac=trainvalsplit
+    )
 
-    #Get transform and load data/raw/
+    # Save train & validation sets
+    save_image_labels(
+        train_images_all[train_idx],
+        train_labels_all[train_idx],
+        processed_dir,
+        'train'
+    )
+    save_image_labels(
+        train_images_all[val_idx],
+        train_labels_all[val_idx],
+        processed_dir,
+        'val'
+    )
+
+    # Save test set
+    save_image_labels(
+        *get_image_labels_tensors(test_dataset),
+        processed_dir,
+        'test'
+    )
+
+
+# =========================
+# End-to-end preprocessing
+# =========================
+
+def preprocess_data(
+    raw_dir: str,
+    processed_dir: str,
+    trainvalsplit: float
+) -> None:
+    """
+    Load raw image data, preprocess it, and save serialized tensors.
+    """
     transform = get_transform()
-    train_dataset = get_dataset(os.path.join(raw_dir,'train'), transform)
-    test_dataset  = get_dataset(os.path.join(raw_dir,'test'), transform)
 
-    #Save datasets in data/processed
-    print ('Converting datasets .pt files...')
-    save_data(train_dataset, test_dataset, processed_dir)
+    train_dataset = get_dataset(os.path.join(raw_dir, 'train'), transform)
+    test_dataset = get_dataset(os.path.join(raw_dir, 'test'), transform)
+
+    print('Converting datasets to .pt files...')
+    save_data(train_dataset, test_dataset, processed_dir, trainvalsplit)
     save_metadata(train_dataset.class_to_idx, processed_dir)
-    print ('Done.')
+    print('Done.')
 
-def load_metadata(processed_dir):
-    return torch.load(os.path.join(processed_dir,'class_to_idx.pt'))
 
-def load_data(processed_dir) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
-    """Return train and test datasets for corrupt MNIST."""
-    train_images = torch.load(os.path.join(processed_dir,"train_images.pt"))
-    train_target = torch.load(os.path.join(processed_dir,"train_target.pt"))
-    val_images = torch.load(os.path.join(processed_dir,"val_images.pt"))
-    val_target = torch.load(os.path.join(processed_dir,"val_target.pt"))
-    test_images = torch.load(os.path.join(processed_dir,"test_images.pt"))
-    test_target = torch.load(os.path.join(processed_dir,"test_target.pt"))
+# =========================
+# Loading processed datasets
+# =========================
+
+def load_metadata(processed_dir: str) -> Dict[str, int]:
+    """
+    Load class-to-index metadata.
+    """
+    return torch.load(os.path.join(processed_dir, 'class_to_idx.pt'))
+
+
+def load_data(
+    processed_dir: str
+) -> tuple[
+    torch.utils.data.Dataset,
+    torch.utils.data.Dataset,
+    torch.utils.data.Dataset
+]:
+    """
+    Load train, validation, and test TensorDatasets from disk.
+    """
+    train_images = torch.load(os.path.join(processed_dir, "train_images.pt"))
+    train_target = torch.load(os.path.join(processed_dir, "train_target.pt"))
+
+    val_images = torch.load(os.path.join(processed_dir, "val_images.pt"))
+    val_target = torch.load(os.path.join(processed_dir, "val_target.pt"))
+
+    test_images = torch.load(os.path.join(processed_dir, "test_images.pt"))
+    test_target = torch.load(os.path.join(processed_dir, "test_target.pt"))
 
     train_set = torch.utils.data.TensorDataset(train_images, train_target)
     val_set = torch.utils.data.TensorDataset(val_images, val_target)
     test_set = torch.utils.data.TensorDataset(test_images, test_target)
+
     return train_set, val_set, test_set
+
+
+# =========================
+# Script entry point
+# =========================
 
 if __name__ == "__main__":
 
-    #Set KAGGLEHUB_CACHE environment variable
-    os.environ["KAGGLEHUB_CACHE"] = os.path.join(root, 'raw')
+    # Set KaggleHub cache directory
+    os.environ["KAGGLEHUB_CACHE"] = os.path.join(root, raw_str)
 
-    #Download latest version
-    path = kagglehub.dataset_download("msambare/fer2013")
+    # Download dataset
+    path = kagglehub.dataset_download(kaggle_id)
     print("Path to dataset files:", path)
 
-    #Load datasets from data/raw and save in data/preprocessed    
-    preprocess_data(raw_dir, processed_dir)
+    # Define directory paths
+    raw_dir = os.path.join(
+        root,
+        f'{raw_str}/datasets/{kaggle_id}/versions/{data_version_path}/'
+    )
+    processed_dir = os.path.join(root, processed_str)
 
-    #Load datsets from data/processed
+    # Create processed directory if needed
+    create_processed_dir(processed_dir)
+
+    # Sanity checks
+    assert os.path.exists(raw_dir)
+    assert os.path.exists(processed_dir)
+
+    # Preprocess and save data
+    preprocess_data(raw_dir, processed_dir, trainvalsplit)
+
+    # Load processed datasets
     train_set, val_set, test_set = load_data(processed_dir)
