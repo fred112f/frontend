@@ -4,6 +4,8 @@ from pytorch_lightning import LightningModule, Trainer
 from torch import nn, optim
 import torch
 import transformers
+import torchvision
+import PIL
 
 def get_trainer(model, trainer_args):
     """
@@ -14,9 +16,9 @@ def get_trainer(model, trainer_args):
         trainer_args: Training arguments
     """
 
-    if model is "lightning":
+    if model == "lightning":
         trainer = Trainer(**trainer_args)
-    elif model is "huggingface":
+    elif model == "huggingface":
         trainer = transformers.Trainer(**trainer_args)
 
     return trainer
@@ -40,5 +42,5 @@ def load():
 
 
 if __name__ == "__main__":
-
+    img = torchvision.io.read_image(path="data/raw/datasets/msambare/fer2013/versions/1/test/angry/PrivateTest_88305.jpg")
     train()
