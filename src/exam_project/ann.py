@@ -1,9 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pytorch_lightning import LightningModule
 
 
-class ANNClassifier(nn.Module):
+class ANNClassifier(LightningModule):
     """Simple MLP for 48x48 grayscale images (7 classes)."""
 
     def __init__(
