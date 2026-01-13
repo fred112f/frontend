@@ -7,12 +7,18 @@ import transformers
 import torchvision
 import PIL
 
+import typer
+from typing import Annotated
+
 from PIL import Image
 from torchvision import transforms
 from torchvision.datasets import DatasetFolder
 import os
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.mps.is_available() else 'cpu'
+
+app = typer.Typer()
+
 
 def get_trainer(model, trainer_args):
     """
@@ -32,17 +38,22 @@ def get_trainer(model, trainer_args):
 
     return trainer
 
-def train():
+@app.command()
+def train(
+        max_epochs: Annotated[int, typer.Option("--max-epochs", "-max_e")] = 1,
+        lr: Annotated[float, typer.Option("--learning-rate", "-lr")] = 1e-3,
+        batch_size: Annotated[float, typer.Option("--batch-size", "-bs")] = 128
+    ):
     """
     Trains the model
     """
-    trainer_args = {"max_epochs": 1,'limit_train_batches': 0.05, 'accelerator': DEVICE}
+    trainer_args = {"max_epochs": max_epochs,'limit_train_batches': 0.05, 'accelerator': DEVICE}
     train, val, test = load_data(processed_dir='data/processed/')
     train = torch.utils.data.DataLoader(train, persistent_workers=True, num_workers=9)
     val = torch.utils.data.DataLoader(val, persistent_workers=True, num_workers=9)
     test = torch.utils.data.DataLoader(test, persistent_workers=True, num_workers=9)
     
-    model = BaseANN()
+    model = BaseANN(lr=lr)
     trainer = get_trainer(model, trainer_args=trainer_args)
     trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
     torch.save(model.state_dict(), "models/checkpoint.pth")
@@ -56,4 +67,4 @@ def load():
 
 
 if __name__ == "__main__":
-    train()
+    app()

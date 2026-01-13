@@ -5,12 +5,15 @@ import torch
 from torch.utils.data import DataLoader
 
 from exam_project.data import load_data
-from model import BaseANN, BaseCNN
+from exam_project.model import BaseANN, BaseCNN
 
+import typer
+from typing import Annotated
 
 ROOT = Path(__file__).resolve().parents[2]    # go two levels up to project root
 DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.mps.is_available() else 'cpu'
 
+app = typer.Typer()
 
 def load_model(model_file_name: str, device: str) -> None:
     """
@@ -31,10 +34,10 @@ def load_model(model_file_name: str, device: str) -> None:
 
     return model
 
-
-def evaluate_model(model_file_name: str, 
-                   test_data_path: str, 
-                   device: str
+@app.command()
+def evaluate_model(model_file_name: str = "checkpoint.pth", 
+                   test_data_path: str = "data/processed/", 
+                   device: str = DEVICE
                    ) -> dict:
     """
     Evaluates a trained image classification model.
@@ -77,12 +80,16 @@ def evaluate_model(model_file_name: str,
                  "Weighted F1": weighted_f1,
                  "Confusion matrix": conf_matrix,
                  }
-    
+
     return eval_dict
 
 
-if __name__ == "__main__":
+def print_eval_dict():
     eval_dict = evaluate_model(model_file_name="checkpoint.pth",
                                test_data_path="data/processed/",   # TODO: add model and test_data_path to config file
                                device=DEVICE)
     print(eval_dict)
+
+if __name__ == "__main__":
+    app()
+    
