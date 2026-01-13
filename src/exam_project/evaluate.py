@@ -15,7 +15,7 @@ DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.mps.is_availabl
 
 app = typer.Typer()
 
-def load_model(model_file_name: str, device: str) -> None:
+def load_model(model_file_name: str = "checkpoint.pth", device: str = DEVICE) -> None:
     """
     Loads a trained image classification model.
 
@@ -57,7 +57,7 @@ def evaluate_model(model_file_name: str = "checkpoint.pth",
     _, _, test = load_data(processed_dir=test_data_path)
 
     # dataloader
-    test_loader = DataLoader(test, persistent_workers=True, num_workers=9)   # batch_size is by default 1
+    test_loader = DataLoader(test, persistent_workers=True, num_workers=9)
 
     # making predictions on the test set one image at a time
     y_pred = []
