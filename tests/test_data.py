@@ -88,7 +88,7 @@ def test_dataset_versions_available():
         pytest.skip("No dataset versions found. Download data first.")
 
     version_numbers = [v.name for v in versions]
-    assert data_version_path in version_numbers, (
+    assert DATA_VERSION_PATH in version_numbers, (
         f"Version {DATA_VERSION_PATH} not found. Available: {version_numbers}"
     )
 
