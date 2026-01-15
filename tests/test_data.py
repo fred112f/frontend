@@ -265,14 +265,14 @@ def test_get_transform():
 def test_get_split_index():
     """Test train/val split indices with various configurations."""
     N = 100
-    train_idx, val_idx = get_split_index(N, 0.8)
+    train_idx, val_idx = get_split_index(N, 0.8, seed=42)
 
     assert len(train_idx) == 80
     assert len(val_idx) == 20
     assert len(torch.unique(torch.cat([train_idx, val_idx]))) == N
 
     for frac in [0.6, 0.7, 0.8, 0.9]:
-        train_idx, val_idx = get_split_index(N, frac)
+        train_idx, val_idx = get_split_index(N, frac, seed=42)
         assert len(train_idx) == int(frac * N)
         assert len(val_idx) == N - int(frac * N)
         assert len(set(train_idx.tolist()) & set(val_idx.tolist())) == 0
@@ -280,7 +280,7 @@ def test_get_split_index():
 
 def test_data_split_reproducibility():
     """Test that data splits are deterministic."""
-    splits = [get_split_index(200, 0.8) for _ in range(3)]
+    splits = [get_split_index(200, 0.8, seed=42) for _ in range(3)]
 
     for train_idx, val_idx in splits[1:]:
         assert torch.equal(train_idx, splits[0][0])
