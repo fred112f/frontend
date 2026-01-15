@@ -183,5 +183,11 @@ models/*
 lightning_logs/
 /data
 
+# WANDB
+wandb/
+MLOps-exam/
+
+
+
 # Hydra outputs
 outputs/
