@@ -6,7 +6,6 @@ from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 import transformers
-import typer
 from typing import Annotated
 from dotenv import load_dotenv
 import os
@@ -17,9 +16,7 @@ project = os.getenv("WANDB_PROJECT")
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-app = typer.Typer()
 
-@app.command()
 def train(
         max_epochs: Annotated[int, typer.Option("--max-epochs", "-max_e")] = 1,
         lr: Annotated[float, typer.Option("--learning-rate", "-lr")] = 1e-3,
@@ -58,4 +55,4 @@ def train(
     print(checkpoint_callback.best_model_path)
 
 if __name__ == "__main__":
-    app()
+    pass

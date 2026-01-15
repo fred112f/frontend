@@ -71,6 +71,6 @@ line-length = 120
 omit = ["tests/*"]
 
 [project.scripts]
-train = "exam_project.train:app"
-evaluate = "exam_project.evaluate:app"
+train = "exam_project.train:train"
+evaluate = "exam_project.evaluate:evaluate"
 
