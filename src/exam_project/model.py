@@ -193,7 +193,7 @@ class ViTClassifier(LightningModule):
 
 @hydra.main(config_path="../../configs/", config_name="config", version_base=None)
 def main(cfg):
-    cnn = instantiate(cfg.basecnn)
+    cnn = instantiate(cfg.models.basecnn)
     # Create a random input tensor with shape (batch=1, channels=1, H=img_size, W=img_size)
     x = torch.rand(2, 1, cnn.img_size, cnn.img_size)
 
@@ -204,7 +204,7 @@ def main(cfg):
     print(f"Output: {torch.exp(output)}")
 
     # Test for ANN
-    ann = instantiate(cfg.baseann)
+    ann = instantiate(cfg.models.baseann)
     output = ann(x)
     print(f"Output shape of model: {output.shape}")  # [2, 7]
     print(f"Output (probabilities): {torch.exp(output)}")
@@ -215,7 +215,7 @@ def main(cfg):
     print(f"Loss: {loss.item():.4f}")
 
     # Test for ViT
-    vit_model = instantiate(cfg.vitclf)
+    vit_model = instantiate(cfg.models.vitclf)
     output = vit_model(x)
     print(f"Output shape of ViT model: {output.shape}")  # [2, 7]
     print(f"Output (probabilities): {F.softmax(output, dim=1)}")
