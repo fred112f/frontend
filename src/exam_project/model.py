@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from pytorch_lightning import LightningModule
 from transformers import ViTForImageClassification, ViTImageProcessor
-
+from sklearn.metrics import accuracy_score, RocCurveDisplay
 class BaseCNN(LightningModule):
     """Our custom CNN to classify facial expressions."""
     def __init__(self, img_size: int = 48, output_dim: int = 7, lr: float = 1e-3):
@@ -52,9 +52,35 @@ class BaseCNN(LightningModule):
         return x
 
     def training_step(self, batch):
+        """
+        Expects batch to be (images, targets)
+        - images: [B, 1, 48, 48]
+        - targets: [B] with class indices 0..6
+        """
         img, target = batch
-        y_pred = self(img)
-        return self.loss_fn(y_pred, target)
+        y_pred = self(img) 
+        loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+
+        self.log("training_loss", loss)
+        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        return loss
+    
+    def validation_step(self, batch):
+        """
+        Expects batch to be (images, targets)
+        - images: [B, 1, 48, 48]
+        - targets: [B] with class indices 0..6
+        """
+        img, target = batch
+        y_pred = self(img)  
+        loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+
+        self.log("validation_loss", loss)
+        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        return loss
+
     
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -110,9 +136,12 @@ class BaseANN(LightningModule):
         - targets: [B] with class indices 0..6
         """
         img, target = batch
-        y_pred = self(img)  
+        y_pred = self(img) 
         loss = self.loss_fn(y_pred, target)
-        self.log("validation_loss", loss)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+
+        self.log("training_loss", loss)
+        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
         return loss
     
     def validation_step(self, batch):
@@ -124,7 +153,10 @@ class BaseANN(LightningModule):
         img, target = batch
         y_pred = self(img)  
         loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+
         self.log("validation_loss", loss)
+        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
         return loss
 
     def configure_optimizers(self):
