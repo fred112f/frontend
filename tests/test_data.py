@@ -9,7 +9,6 @@ from exam_project.data import (
     get_transform,
     get_split_index,
     load_data,
-    pil_loader,
     create_processed_dir,
     kaggle_id,
     data_version_path,
@@ -333,7 +332,9 @@ def test_data_normalization():
 
     assert isinstance(tensor, torch.Tensor)
     assert tensor.shape == (1, 48, 48)
-    assert tensor.min() >= -1.5 and tensor.max() <= 1.5
+    # Normalize(mean=0.5, std=0.5) maps [0, 1] -> [-1, 1]
+    # Allow small tolerance for floating point precision
+    assert tensor.min() >= -1.1 and tensor.max() <= 1.1
 
 
 def test_data_loading_reproducibility():
