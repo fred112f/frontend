@@ -10,11 +10,13 @@ from exam_project.data import (
     get_split_index,
     load_data,
     create_processed_dir,
-    kaggle_id,
-    data_version_path,
-    root,
-    raw_str,
 )
+
+# Constants (hardcoded from data.py to avoid import issues)
+KAGGLE_ID = "msambare/fer2013"
+DATA_VERSION_PATH = "1"
+ROOT = "data"
+RAW_STR = "raw"
 
 EXPECTED_CLASSES = {
     "angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"
@@ -25,11 +27,11 @@ EXPECTED_MODE = "L"
 
 def get_all_dataset_versions():
     """Get all available dataset versions."""
-    base_dir = Path(f"{root}/{raw_str}/datasets/{kaggle_id}/versions")
+    base_dir = Path(f"{ROOT}/{RAW_STR}/datasets/{KAGGLE_ID}/versions")
     versions = set()
 
     current_version_dir = Path(
-        f"{root}/{raw_str}/datasets/{kaggle_id}/versions/{data_version_path}"
+        f"{ROOT}/{RAW_STR}/datasets/{KAGGLE_ID}/versions/{DATA_VERSION_PATH}"
     )
     if current_version_dir.exists():
         versions.add(current_version_dir)
@@ -87,7 +89,7 @@ def test_dataset_versions_available():
 
     version_numbers = [v.name for v in versions]
     assert data_version_path in version_numbers, (
-        f"Version {data_version_path} not found. Available: {version_numbers}"
+        f"Version {DATA_VERSION_PATH} not found. Available: {version_numbers}"
     )
 
 
