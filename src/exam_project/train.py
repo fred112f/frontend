@@ -15,28 +15,9 @@ api_key = os.getenv("WANDB_API_KEY")
 entity = os.getenv("WANDB_ENTITY")
 project = os.getenv("WANDB_PROJECT")
 
-
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 app = typer.Typer()
-
-def get_trainer(model, trainer_args):
-    """
-    Gets a Trainer object of either transformers or pytorch lightning
-
-    params:
-        model: The model class
-        trainer_args: Training arguments
-    """
-    return Trainer(**trainer_args)
-
-    # IMPLEMENT WHEN WE GET HUGGINGFACE MODELS
-    if model == "lightning":
-        trainer = Trainer(**trainer_args)
-    elif model == "huggingface":
-        trainer = transformers.Trainer(**trainer_args)
-
-    return trainer
 
 @app.command()
 def train(
@@ -72,8 +53,9 @@ def train(
     test = torch.utils.data.DataLoader(test, persistent_workers=True, num_workers=9, batch_size=batch_size)
     
     model = BaseCNN(lr=lr)
-    trainer = get_trainer(model, trainer_args=trainer_args)
+    trainer = Trainer(**trainer_args)
     trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
     print(checkpoint_callback.best_model_path)
+
 if __name__ == "__main__":
     app()
