@@ -2,18 +2,27 @@ name: "Check for Linting on Merge to Main"
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ main ]
   pull_request:
-    branches: [ master, main ]
+    branches: [ main ]
+
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+    matrix:
+      os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+      python-version: ["3.12", "3.13"]
 
     steps:
     - name: Checkout
       uses: actions/checkout@v5
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: Setup uv
       uses: astral-sh/setup-uv@v7
