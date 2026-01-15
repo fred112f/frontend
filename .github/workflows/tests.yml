@@ -43,13 +43,16 @@ jobs:
     - name: Install dependencies
       run: |
         uv sync --all-extras
-        uv pip install -e .
     
     - name: Run tests with pytest
+      env:
+        PYTHONPATH: ${{ github.workspace }}/src
       run: |
         uv run pytest tests/ -v --tb=short
     
     - name: Generate coverage report
+      env:
+        PYTHONPATH: ${{ github.workspace }}/src
       run: |
         uv run coverage run -m pytest tests/
         uv run coverage report -m
