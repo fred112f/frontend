@@ -10,6 +10,7 @@ import torch
 import transformers
 from typing import Annotated
 import wandb
+from omegaconf import OmegaConf
 
 @hydra.main(config_path="configs", config_name="train", version_base=None)
 def train(cfg):
@@ -20,11 +21,14 @@ def train(cfg):
         cfg: .yaml using Hydra
     """
 
+    cfg_omega = OmegaConf.to_container(cfg)
+
+
     wandb.init(
         project=cfg.logger.wandb.project,
         entity=cfg.logger.wandb.entity,
         job_type=cfg.logger.wandb.job_type,
-        config=cfg.models
+        config=cfg_omega
     )
 
     checkpoint_callback = ModelCheckpoint(
@@ -35,8 +39,8 @@ def train(cfg):
 
     trainer_args = {"max_epochs": cfg.trainer.max_epochs
                     , 'accelerator': cfg.trainer.accelerator
-                    , 'logger': WandbLogger(log_model=True, project=cfg.logger.wandb.project)
-                    , 'log_every_n_steps': 5
+                    , 'logger': WandbLogger(log_model=cfg.logger.wandb.log_model, project=cfg.logger.wandb.project)
+                    , 'log_every_n_steps': cfg.trainer.log_every_n_steps
                     , "callbacks": [checkpoint_callback]}
     
     train, val, test = load_data(processed_dir='data/processed/')

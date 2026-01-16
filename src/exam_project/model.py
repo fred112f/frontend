@@ -47,7 +47,6 @@ class BaseCNN(LightningModule):
         # Learning rate
         self.lr = lr
 
-        self.save_hyperparameters()
 
     def forward(self, x):
         x = self.pool(F.relu(self.bn1(self.conv1(x))))
@@ -134,7 +133,6 @@ class BaseANN(LightningModule):
 
         self.lr = lr
 
-        self.save_hyperparameters()
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -189,7 +187,6 @@ class ViTClassifier(LightningModule):
         output_dim: int,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters()
         self.lr = lr
         self.freeze_backbone = freeze_backbone
         self. output_dim = output_dim
