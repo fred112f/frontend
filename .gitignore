@@ -186,7 +186,7 @@ lightning_logs/
 # WANDB
 wandb/
 MLOps-exam/
-
+artifacts/
 
 
 # Hydra outputs
