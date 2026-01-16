@@ -12,7 +12,7 @@ class BaseCNN(LightningModule):
                  img_size: int, 
                  output_dim: int, 
                  lr: float,
-                 dropout: float,
+                 dropout: float = 0.2,
                  ):
         super(BaseCNN, self).__init__()
 
