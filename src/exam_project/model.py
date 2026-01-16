@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from pytorch_lightning import LightningModule
 from transformers import ViTForImageClassification, ViTImageProcessor
 from sklearn.metrics import accuracy_score
+
+
 class BaseCNN(LightningModule):
     """Our custom CNN to classify facial expressions."""
     def __init__(self, img_size: int = 48, output_dim: int = 7, lr: float = 1e-3):
