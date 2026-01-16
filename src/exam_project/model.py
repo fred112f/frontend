@@ -238,7 +238,7 @@ class ViTClassifier(LightningModule):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
 
-@hydra.main(config_path="../../configs", config_name="train", version_base=None)
+@hydra.main(config_path="configs", config_name="train", version_base=None)
 def main(cfg):
     # Create a random input tensor with shape (batch=1, channels=1, H=img_size, W=img_size)
     x = torch.rand(2, 1, cfg.models.img_size, cfg.models.img_size)
