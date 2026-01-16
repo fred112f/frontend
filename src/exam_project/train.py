@@ -48,6 +48,28 @@ def train(cfg):
     trainer = Trainer(**trainer_args)
     trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
 
+    # Save and log the best model to model registry
+    best_model_path = checkpoint_callback.best_model_path
+    
+    # Create an artifact
+    artifact = wandb.Artifact(
+        name=f"emotion-model-{cfg.models._target_}",
+        type="model",
+        description="Emotion recognition model"
+    )
+    
+    # Add the model file to the artifact
+    artifact.add_file(best_model_path)
+    
+    # Log the artifact
+    wandb.log_artifact(artifact)
+    
+    # Link to model registry
+    wandb.run.link_artifact(
+        artifact=artifact,
+        target_path="krusand-danmarks-tekniske-universitet-dtu-org/wandb-registry-fer-model/Model new",
+        aliases=["latest"]
+    )
 
 if __name__ == "__main__":
     train()
