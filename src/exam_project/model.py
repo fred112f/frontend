@@ -9,9 +9,9 @@ from sklearn.metrics import accuracy_score
 class BaseCNN(LightningModule):
     """Our custom CNN to classify facial expressions."""
     def __init__(self, 
-                 img_size: int, 
-                 output_dim: int, 
-                 lr: float,
+                 img_size: int = 48, 
+                 output_dim: int = 7, 
+                 lr: float = 1e-3,
                  dropout: float = 0.2,
                  ) -> None:
         super(BaseCNN, self).__init__()
@@ -96,11 +96,11 @@ class BaseANN(LightningModule):
 
     def __init__(
         self,
-        img_size: int,
-        output_dim: int,
-        hidden: tuple[int, ...],
-        dropout: float,
-        lr: float,
+        img_size: int = 48,
+        output_dim: int = 7,
+        hidden: tuple[int, ...] = (512,256),
+        dropout: float = 0.3,
+        lr: float = 1e-3,
     ) -> None:
         super().__init__()
 
@@ -175,10 +175,10 @@ class ViTClassifier(LightningModule):
 
     def __init__(
         self,
-        model_name: str,
-        lr: float,
-        freeze_backbone: bool,
-        output_dim: int,
+        output_dim: int = 7,
+        model_name: str = "google/vit-base-patch16-224-in21k",
+        learning_rate: float = 1e-4,
+        freeze_backbone: bool = False,
     ) -> None:
         super().__init__()
         self.model_name = model_name
