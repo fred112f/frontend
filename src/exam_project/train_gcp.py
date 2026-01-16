@@ -9,6 +9,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import os
 import torch
 import typer
+import wandb
 from dotenv import load_dotenv
 from pathlib import Path
 from typing import Annotated
@@ -33,6 +34,8 @@ NUM_WORKERS = int(os.getenv("NUM_WORKERS","4"))
 PERSISTENT_WORKERS = NUM_WORKERS>0
 
 app = typer.Typer()
+
+wandb.login(key=WANDB_API_KEY)
 
 def get_trainer(trainer_args:dict)->pytorch_lightning.Trainer:
     """
