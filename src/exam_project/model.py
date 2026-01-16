@@ -13,7 +13,7 @@ class BaseCNN(LightningModule):
                  output_dim: int, 
                  lr: float,
                  dropout: float = 0.2,
-                 ):
+                 ) -> None:
         super(BaseCNN, self).__init__()
 
         self.img_size = img_size
@@ -43,9 +43,6 @@ class BaseCNN(LightningModule):
 
         # Loss function
         self.loss_fn = nn.NLLLoss()
-
-        # Learning rate
-        self.lr = lr
 
 
     def forward(self, x):
@@ -130,9 +127,6 @@ class BaseANN(LightningModule):
         self.net = nn.Sequential(*layers)
 
         self.loss_fn = nn.NLLLoss()
-
-        self.lr = lr
-
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
