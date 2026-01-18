@@ -22,10 +22,13 @@ uv run dvc pull data.dvc -r gcsremote
 # Run training
 uv run src/exam_project/train_gcp.py
 
-'''# Run this at the command line
+# Run this at the command line
+: <<'COMMENT'
+docker build -f dockerfiles/train_gcp.dockerfile . -t traingcp:latest
+
 docker run  --rm \
   --env-file $(pwd)/.env \
   -v $(pwd)/decent-seeker-484209-j2-8707d48bfe74.json:/app/key.json:ro \
   -e GOOGLE_APPLICATION_CREDENTIALS=/app/key.json \
   --name trainingcpcontainer traingcp:latest
-'''
+COMMENT
