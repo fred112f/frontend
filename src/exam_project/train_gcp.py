@@ -37,6 +37,8 @@ app = typer.Typer()
 
 wandb.login(key=WANDB_API_KEY)
 
+pytorch_lightning.seed_everything(42, workers=True)
+
 def get_trainer(trainer_args:dict)->pytorch_lightning.Trainer:
     """
     Returns PyTorch Lightning Trainer
