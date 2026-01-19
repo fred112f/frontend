@@ -16,7 +16,8 @@ parameters:
     values: [10, 15, 20]
   trainer.limit_train_batches:
     value: 0.05
-
+  trainer.limit_val_batches:
+    value: 0.05
 early_terminate:
   type: hyperband
   min_iter: 3
