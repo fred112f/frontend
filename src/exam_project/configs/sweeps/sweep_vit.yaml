@@ -13,7 +13,7 @@ parameters:
   trainer.max_epochs:
     values: [10, 15, 20]
   models:
-    values: vit
+    value: vit
 early_terminate:
   type: hyperband
   min_iter: 3

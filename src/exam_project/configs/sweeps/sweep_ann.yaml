@@ -16,7 +16,7 @@ parameters:
   trainer.max_epochs:
     values: [10, 15, 20]
   models:
-    values: ann
+    value: ann
 early_terminate:
   type: hyperband
   min_iter: 3
