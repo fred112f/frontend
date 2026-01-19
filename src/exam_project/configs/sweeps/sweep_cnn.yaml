@@ -1,7 +1,7 @@
 program: src/exam_project/train.py
 method: bayes
 metric:
-  goal: maximize
+  goal: minimize
   name: validation_loss
 parameters:
   models.lr:
