@@ -1,0 +1,22 @@
+program: src/exam_project/train.py
+method: bayes
+metric:
+  goal: maximize
+  name: validation_loss
+parameters:
+  models.lr:
+    min: 0.0001
+    max: 0.01
+    distribution: log_uniform_values
+  models.dropout:
+    values: [0.1, 0.3, 0.5]
+  trainer.max_epochs:
+    values: [10, 15, 20]
+  models:
+    values: [ann, cnn, vit]
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}
