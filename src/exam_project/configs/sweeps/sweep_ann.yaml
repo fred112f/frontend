@@ -13,10 +13,13 @@ parameters:
   # models.hidden:
   #   values:
   #     - "[128, 256]"
-  trainer.max_epochs:
-    values: [10, 15, 20]
   models:
     value: ann
+  trainer.max_epochs:
+    values: [10, 15, 20]
+  trainer.limit_train_batches:
+    value: 0.05
+
 early_terminate:
   type: hyperband
   min_iter: 3

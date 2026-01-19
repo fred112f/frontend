@@ -10,10 +10,13 @@ parameters:
     distribution: log_uniform_values
   models.dropout:
     values: [0.1, 0.3, 0.5]
-  trainer.max_epochs:
-    values: [10, 15, 20]
   models:
     value: cnn
+  trainer.max_epochs:
+    values: [10, 15, 20]
+  trainer.limit_train_batches:
+    value: 0.05
+
 early_terminate:
   type: hyperband
   min_iter: 3

@@ -10,10 +10,13 @@ parameters:
     distribution: log_uniform_values
   models.freeze_backbone:
     values: [True, False]
-  trainer.max_epochs:
-    values: [10, 15, 20]
   models:
     value: vit
+  trainer.max_epochs:
+    values: [10, 15, 20]
+  trainer.limit_train_batches:
+    value: 0.05
+
 early_terminate:
   type: hyperband
   min_iter: 3

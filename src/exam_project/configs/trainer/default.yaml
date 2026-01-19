@@ -6,6 +6,9 @@ max_epochs: 10
 accelerator: cpu
 devices: 1
 
+# Limits train batches to train quicker for sweeping
+limit_train_batches: 1
+
 # mixed precision for extra speed-up
 # precision: 16
 
