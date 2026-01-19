@@ -17,12 +17,16 @@ parameters:
     values: [10, 15, 20]
   models:
     values: [ann, cnn, vit]
-
+early_terminate:
+  type: hyperband
+  min_iter: 3
+  eta: 2
 command: # Indicates that wandb agent should run this code. 
   - ${env} # Handles environment variables like WANDB_API_KEY
   - python # Calls python
   - ${program} # Calls the path at the top
   - ${args_no_hyphens} # Ensures that hydra notation is used. 
+
 # As an example it would look something like this:
 # python src/exam_project/train.py models.lr=0.0001 models.dropout=0.1 ...
 # If ${args_no_hyphens}: python src/exam_project/train.py --models.lr=0.0001 --models.dropout=0.1 ...
