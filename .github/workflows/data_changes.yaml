@@ -38,7 +38,7 @@ jobs:
 
     - name: Pull data
       run: |
-        dvc pull --no-run-cache
+        uv run dvc pull --no-run-cache
 
     - name: Check data statistics
       run: |
