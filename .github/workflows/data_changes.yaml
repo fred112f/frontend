@@ -1,0 +1,45 @@
+name: "DVC"
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    paths:
+    - '**/*.dvc'
+    - '.dvc/**'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
+        python-version: ["3.12", "3.13"]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+
+    - name: Install dependencies
+      run: |
+        uv sync --locked
+
+    - name: Auth with GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_GITHUB_ACTION_BUCKET_READER }}
+
+    - name: Pull data
+      run: |
+        dvc pull --no-run-cache
+
+    - name: Check data statistics
+      run: |
+        uv run src/exam_project/dataset_statistics.py
