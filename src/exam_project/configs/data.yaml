@@ -1,3 +1,6 @@
+defaults:
+  - debug: default
+
 paths:
   data_root: 'data'
   data_version_path: '1'

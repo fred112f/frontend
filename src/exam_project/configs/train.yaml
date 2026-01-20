@@ -4,3 +4,4 @@ defaults:
   - logger: wandb
   - trainer: default
   - data: default
+  - debug: default

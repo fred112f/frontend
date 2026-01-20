@@ -1,0 +1,61 @@
+name: "Check for dataset changes"
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+    - '**/*.dvc'
+    - '.dvc/**'
+
+jobs:
+  dataset_statistics:
+    name: Dataset Statitics
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest"]
+        python-version: ["3.12"]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+        enable-cache: true
+
+    - name: Install dependencies
+      run: |
+        uv sync --locked
+
+    - name: Auth with GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_GITHUB_ACTION_BUCKET_READER }}
+
+    - name: Pull data
+      run: |
+        uv run dvc pull --no-run-cache
+
+    - name: Check data statistics
+      run: |
+        uv run src/exam_project/dataset_statistics.py
+
+    - name: Generate report
+      run: |
+        echo '## Dataset statistics' >> dataset_statistics.md
+        uv run src/exam_project/dataset_statistics.py > dataset_statistics.md
+        echo '![](./reports/figures/train_label_distribution.png "Train label distribution")' >> dataset_statistics.md
+        echo '![](./reports/figures/val_label_distribution.png "Val label distribution")' >> dataset_statistics.md
+        echo '![](./reports/figures/test_label_distribution.png "Test label distribution")' >> dataset_statistics.md
+
+    - name: Setup cml
+      uses: iterative/setup-cml@v2
+    
+    - name: Comment on PR
+      env:
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cml comment create data_statistics.md --watermark-title="Data Checker" # (1)!
