@@ -70,7 +70,7 @@ class BaseCNN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -85,7 +85,7 @@ class BaseCNN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
 
     
@@ -150,7 +150,7 @@ class BaseANN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -165,7 +165,7 @@ class BaseANN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
 
     def configure_optimizers(self):
@@ -237,7 +237,7 @@ class ViTClassifier(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
         
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -247,7 +247,7 @@ class ViTClassifier(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def configure_optimizers(self):
