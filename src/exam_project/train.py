@@ -37,6 +37,8 @@ def train(cfg):
     trainer_args = {"max_epochs": cfg.trainer.max_epochs
                     , 'accelerator': cfg.trainer.accelerator
                     , 'logger': WandbLogger(log_model=cfg.logger.wandb.log_model, project=cfg.logger.wandb.project)
+                    , 'limit_train_batches': cfg.trainer.limit_train_batches
+                    , 'limit_val_batches': cfg.trainer.limit_val_batches
                     , 'log_every_n_steps': cfg.trainer.log_every_n_steps
                     , "callbacks": [checkpoint_callback]}
     

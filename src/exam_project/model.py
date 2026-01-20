@@ -70,7 +70,7 @@ class BaseCNN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -85,7 +85,7 @@ class BaseCNN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
 
     
@@ -150,7 +150,7 @@ class BaseANN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -165,7 +165,7 @@ class BaseANN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
 
     def configure_optimizers(self):
@@ -232,11 +232,24 @@ class ViTClassifier(LightningModule):
 
     def training_step(self, batch):
         img, target = batch
-        logits = self(img)
-        loss = self.loss_fn(logits, target)
-        self.log("train_loss", loss, prog_bar=True)
+        y_pred = self(img) 
+        loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+        
+        self.log("training_loss", loss)
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
+    
+    def validation_step(self, batch):
+        img, target = batch
+        y_pred = self(img)  
+        loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
 
+        self.log("validation_loss", loss)
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
+        return loss
+    
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=self.lr)
 
