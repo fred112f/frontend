@@ -11,3 +11,8 @@ paths:
 hyperparameters:
   seed: 42
   trainvalsplit: 0.8
+
+meta:
+  expected_classes: ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
+  expected_mode: "L"
+  img_size: 48
