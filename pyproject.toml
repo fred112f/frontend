@@ -12,7 +12,7 @@ authors = [
 
 keywords = ["machine learning", "MLOps"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 3 - pha",
   "Programming Language :: Python :: 3",
 ]
 readme = "README.md"
@@ -53,6 +53,9 @@ dev = [
     "mkdocstrings-python==1.12.2",
 ]
 
+
+[tool.uv]
+timeout = 600
 
 [tool.uv.sources]
 torch = [
