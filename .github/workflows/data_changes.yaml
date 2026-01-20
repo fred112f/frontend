@@ -8,7 +8,8 @@ on:
     - '.dvc/**'
 
 jobs:
-  build:
+  dataset_statistics:
+    name: Dataset Statitics
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
