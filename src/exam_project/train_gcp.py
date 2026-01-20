@@ -28,15 +28,18 @@ DATA_DIR = os.environ.get("DATA_DIR", "data/processed/")
 MODEL_DIR = os.environ.get("AIP_MODEL_DIR", "models")
 
 ACCELERATOR = 'gpu' if torch.cuda.is_available() else 'cpu'
-DEVICES=1
+DEVICES=int(os.getenv("DEVICES", "1"))
 
-NUM_WORKERS = int(os.getenv("NUM_WORKERS","4"))
+NUM_WORKERS = int(os.getenv("NUM_WORKERS","2"))
 PERSISTENT_WORKERS = NUM_WORKERS>0
 
+#Setup app
 app = typer.Typer()
 
-wandb.login(key=WANDB_API_KEY)
+#Make model dir if it doesn not already exist
+os.makedirs(MODEL_DIR, exist_ok=True)
 
+#Set random seed
 pytorch_lightning.seed_everything(42, workers=True)
 
 def get_trainer(trainer_args:dict)->pytorch_lightning.Trainer:
@@ -63,6 +66,10 @@ def train(
         batch_size: The number of images in a batch
     """
     #W&B
+    if WANDB_API_KEY:
+        os.environ["WANDB_SILENT"] = "true"
+        os.environ["WANDB_CONSOLE"] = "off"
+        wandb.login(key=WANDB_API_KEY)
     if WANDB_PROJECT is None:
         raise RuntimeError("WANDB_PROJECT environment variable not set")
     wandb_logger = WandbLogger(log_model="all", 
