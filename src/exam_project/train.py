@@ -1,5 +1,6 @@
 from exam_project.data import load_data
 
+from loguru import logger
 import hydra
 from hydra.utils import instantiate
 from pytorch_lightning import Trainer
@@ -8,6 +9,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import torch
 import wandb
 from omegaconf import OmegaConf
+import os
 
 @hydra.main(config_path="configs", config_name="train", version_base=None)
 def train(cfg):
@@ -17,9 +19,12 @@ def train(cfg):
     params: 
         cfg: .yaml using Hydra
     """
+    hydra_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    # Add a log file to the logger
+    logger.add(os.path.join(hydra_path, "hydra_logging.log"), level=cfg.debug.level)
+    logger.info("Training script started")
 
     cfg_omega = OmegaConf.to_container(cfg)
-
 
     run = wandb.init(
         project=cfg.logger.wandb.project,
@@ -41,19 +46,26 @@ def train(cfg):
                     , 'limit_val_batches': cfg.trainer.limit_val_batches
                     , 'log_every_n_steps': cfg.trainer.log_every_n_steps
                     , "callbacks": [checkpoint_callback]}
-    
+    logger.info("Finished cfg setup")
+    logger.info("Starting dataloading")
     train, val, test = load_data(processed_dir='data/processed/')
     train = torch.utils.data.DataLoader(train, persistent_workers=True, num_workers=9, batch_size=cfg.data.batch_size)
     val = torch.utils.data.DataLoader(val, persistent_workers=True, num_workers=9, batch_size=cfg.data.batch_size)
     test = torch.utils.data.DataLoader(test, persistent_workers=True, num_workers=9, batch_size=cfg.data.batch_size)
-    
-    model = instantiate(cfg.models)
-    trainer = Trainer(**trainer_args)
-    trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
+    logger.info("Finished dataloading")
 
+    logger.info("Loading model")
+    model = instantiate(cfg.models)
+    logger.info("Model loaded")
+    trainer = Trainer(**trainer_args)
+    logger.info("Model fitting started")
+    trainer.fit(model=model, train_dataloaders=train, val_dataloaders=val)
+    logger.info("Model fitting finished")
     # Save and log the best model to model registry
     best_model_path = checkpoint_callback.best_model_path
-    
+    logger.info(f"{best_model_path = }")
+
+    logger.info("Creating artifact")
     # Create an artifact
     artifact = wandb.Artifact(
         name=f"emotion-model-{cfg.models._target_}",
@@ -66,14 +78,17 @@ def train(cfg):
     
     # Log the artifact
     wandb.log_artifact(artifact)
-    
+    logger.info("Artifact created and logged")
+    logger.info("Linking artifact")
     # Link to model registry
     wandb.run.link_artifact(
         artifact=artifact,
         target_path="krusand-danmarks-tekniske-universitet-dtu-org/wandb-registry-fer-model/Model new",
         aliases=["latest"]
     )
+    logger.info("Artifact linked")
     run.finish()
+    logger.info("Training script finished")
 
 if __name__ == "__main__":
     train()
