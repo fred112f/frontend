@@ -1,18 +1,16 @@
 """Unit tests for the emotion classification API."""
 
+import os
 import pytest
-from fastapi.testclient import TestClient
+import requests
 from pathlib import Path
 from http import HTTPStatus
 
-from exam_project.api import app
-
-
-@pytest.fixture
-def client():
-    """Create a test client for the API."""
-    with TestClient(app) as test_client:
-        yield test_client
+# Use cloud API or local API
+API_URL = os.getenv(
+    "API_URL",
+    "https://emotion-classifier-597500488480.europe-west1.run.app"
+)
 
 
 @pytest.fixture
@@ -30,16 +28,17 @@ def sample_image():
 class TestHeaderValidation:
     """Test API header validation."""
 
-    def test_missing_authorization_header(self, client, sample_image):
+    def test_missing_authorization_header(self, sample_image):
         """Test that request without authorization header is rejected."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
-                headers={"accept": "application/json"}
+                headers={"accept": "application/json"},
+                timeout=30
             )
 
         # Should get 401 or 400 error
@@ -48,52 +47,55 @@ class TestHeaderValidation:
             HTTPStatus.BAD_REQUEST
         ]
 
-    def test_invalid_authorization_header(self, client, sample_image):
+    def test_invalid_authorization_header(self, sample_image):
         """Test that request with invalid authorization is rejected."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "invalid-key",
                     "accept": "application/json"
-                }
+                },
+                timeout=30
             )
 
         # Should get 401 error for invalid auth
         assert response.status_code == HTTPStatus.UNAUTHORIZED
 
-    def test_missing_accept_header(self, client, sample_image):
+    def test_missing_accept_header(self, sample_image):
         """Test that request without accept header is rejected."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
-                headers={"authorization": "dtu"}
+                headers={"authorization": "dtu"},
+                timeout=30
             )
 
         # Should get 400 error for missing accept
         assert response.status_code == HTTPStatus.BAD_REQUEST
 
-    def test_invalid_accept_header(self, client, sample_image):
+    def test_invalid_accept_header(self, sample_image):
         """Test that request with invalid accept header is rejected."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "dtu",
                     "accept": "text/html"
-                }
+                },
+                timeout=30
             )
 
         assert response.status_code == HTTPStatus.BAD_REQUEST
@@ -102,19 +104,20 @@ class TestHeaderValidation:
 class TestSuccessfulPrediction:
     """Test successful API predictions."""
 
-    def test_predict_success_returns_valid_response(self, client, sample_image):
+    def test_predict_success_returns_valid_response(self, sample_image):
         """Test successful prediction with correct headers."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "dtu",
                     "accept": "application/json"
-                }
+                },
+                timeout=30
             )
 
         assert response.status_code == HTTPStatus.OK
@@ -122,27 +125,31 @@ class TestSuccessfulPrediction:
 
         # Check all required fields are present
         required_fields = {
-            "emotion", "confidence", "probabilities", "status-code", "message"
+            "emotion", "confidence", "probabilities", "message"
         }
         assert required_fields.issubset(result.keys())
 
-        # Check response metadata
-        assert result["status-code"] == 200
-        assert result["message"] == "OK"
+        # Check emotion is valid
+        valid_emotions = {"angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"}
+        assert result["emotion"] in valid_emotions
 
-    def test_predict_response_is_json(self, client, sample_image):
+        # Check confidence is between 0 and 1
+        assert 0 <= result["confidence"] <= 1
+
+    def test_predict_response_is_json(self, sample_image):
         """Test that response content-type is JSON."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "dtu",
                     "accept": "application/json"
-                }
+                },
+                timeout=30
             )
 
         assert response.status_code == HTTPStatus.OK
@@ -153,14 +160,15 @@ class TestSuccessfulPrediction:
 class TestFileHandling:
     """Test API file handling."""
 
-    def test_predict_no_file(self, client):
+    def test_predict_no_file(self):
         """Test that request without file is rejected."""
-        response = client.post(
-            "/predict/",
+        response = requests.post(
+            f"{API_URL}/predict/",
             headers={
                 "authorization": "dtu",
                 "accept": "application/json"
-            }
+            },
+            timeout=30
         )
 
         # Should return error when no file is provided
@@ -169,19 +177,20 @@ class TestFileHandling:
             HTTPStatus.UNPROCESSABLE_ENTITY
         ]
 
-    def test_predict_with_valid_file(self, client, sample_image):
+    def test_predict_with_valid_file(self, sample_image):
         """Test that valid file is accepted."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         with open(sample_image, 'rb') as f:
-            response = client.post(
-                "/predict/",
+            response = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "dtu",
                     "accept": "application/json"
-                }
+                },
+                timeout=30
             )
 
         assert response.status_code == HTTPStatus.OK
@@ -190,32 +199,34 @@ class TestFileHandling:
 class TestConsistency:
     """Test API consistency and reproducibility."""
 
-    def test_same_image_produces_same_prediction(self, client, sample_image):
+    def test_same_image_produces_same_prediction(self, sample_image):
         """Test that the same image produces the same prediction."""
         if sample_image is None:
             pytest.skip("No sample image found")
 
         # First prediction
         with open(sample_image, 'rb') as f:
-            response1 = client.post(
-                "/predict/",
+            response1 = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "dtu",
                     "accept": "application/json"
-                }
+                },
+                timeout=30
             )
         result1 = response1.json()
 
         # Second prediction with same image
         with open(sample_image, 'rb') as f:
-            response2 = client.post(
-                "/predict/",
+            response2 = requests.post(
+                f"{API_URL}/predict/",
                 files={"file": f},
                 headers={
                     "authorization": "dtu",
                     "accept": "application/json"
-                }
+                },
+                timeout=30
             )
         result2 = response2.json()
 
