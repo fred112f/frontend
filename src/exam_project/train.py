@@ -21,9 +21,10 @@ def train(cfg):
     """
     hydra_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     # Add a log file to the logger
-    logger.add(os.path.join(hydra_path, "hydra_logging.log"), level=cfg.debug.level)
+    logger.remove()
+    logger.add(os.path.join(hydra_path, "loguru_logging.log"), level=cfg.debug.level)
     logger.info("Training script started")
-
+    logger.debug(cfg)
     cfg_omega = OmegaConf.to_container(cfg)
 
     run = wandb.init(
@@ -46,6 +47,7 @@ def train(cfg):
                     , 'limit_val_batches': cfg.trainer.limit_val_batches
                     , 'log_every_n_steps': cfg.trainer.log_every_n_steps
                     , "callbacks": [checkpoint_callback]}
+    logger.debug(f"{trainer_args = }")
     logger.info("Finished cfg setup")
     logger.info("Starting dataloading")
     train, val, test = load_data(processed_dir='data/processed/')
@@ -72,7 +74,7 @@ def train(cfg):
         type="model",
         description="Emotion recognition model"
     )
-    
+    logger.info(artifact)
     # Add the model file to the artifact
     artifact.add_file(best_model_path)
     
