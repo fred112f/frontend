@@ -107,7 +107,7 @@ def preprocess_data(raw_dir:str, processed_dir:str, trainvalsplit:float, seed:in
     test_dataset  = get_dataset(os.path.join(raw_dir,'test'), transform)
 
     #Save datasets in data/processed
-    print ('Converting datasets .pt files...')
+    logger.info('Converting datasets .pt files.')
     save_data(train_dataset, test_dataset, processed_dir, trainvalsplit, seed)
     save_metadata(train_dataset.class_to_idx, processed_dir)
 
