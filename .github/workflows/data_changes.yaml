@@ -1,8 +1,6 @@
 name: "Check for dataset changes"
 
 on:
-  push:
-    branches: [ main ]
   pull_request:
     branches: [ main ]
     paths:
@@ -10,13 +8,14 @@ on:
     - '.dvc/**'
 
 jobs:
-  build:
+  dataset_statistics:
+    name: Dataset Statitics
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "windows-latest", "macos-latest"]
-        python-version: ["3.12", "3.13"]
+        os: ["ubuntu-latest"]
+        python-version: ["3.12"]
     steps:
     - name: Checkout code
       uses: actions/checkout@v5
@@ -43,3 +42,20 @@ jobs:
     - name: Check data statistics
       run: |
         uv run src/exam_project/dataset_statistics.py
+
+    - name: Generate report
+      run: |
+        echo '## Dataset statistics' >> dataset_statistics.md
+        uv run src/exam_project/dataset_statistics.py > dataset_statistics.md
+        echo '![](./reports/figures/train_label_distribution.png "Train label distribution")' >> dataset_statistics.md
+        echo '![](./reports/figures/val_label_distribution.png "Val label distribution")' >> dataset_statistics.md
+        echo '![](./reports/figures/test_label_distribution.png "Test label distribution")' >> dataset_statistics.md
+
+    - name: Setup cml
+      uses: iterative/setup-cml@v2
+    
+    - name: Comment on PR
+      env:
+        REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        cml comment create data_statistics.md --watermark-title="Data Checker" # (1)!
