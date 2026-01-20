@@ -1,4 +1,4 @@
-name: "DVC"
+name: "Check for dataset changes"
 
 on:
   push:
