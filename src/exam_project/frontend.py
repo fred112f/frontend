@@ -35,7 +35,7 @@ with st.sidebar:
     st.header("Configuration")
 
     try:
-        response = requests.get(f"{BACKEND_URL}/models/", timeout=5)
+        response = requests.get(f"{BACKEND_URL}/models/", timeout=300)
         if response.status_code == 200:
             models_data = response.json()
             available_models = models_data.get("available_models", {})
@@ -81,7 +81,7 @@ with st.sidebar:
 
     if st.button("Check API Status"):
         try:
-            response = requests.get(f"{BACKEND_URL}/", timeout=5)
+            response = requests.get(f"{BACKEND_URL}/", timeout=300)
             if response.status_code == 200:
                 data = response.json()
                 model_name = data.get("model", "unknown")
@@ -136,7 +136,7 @@ with col2:
                         files=files,
                         headers=headers,
                         params=params,
-                        timeout=30
+                        timeout=300
                     )
 
                     if response.status_code == 200:
