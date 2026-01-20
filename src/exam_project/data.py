@@ -10,7 +10,6 @@ import torch
 from torchvision import transforms
 from torchvision.datasets import DatasetFolder
 from loguru import logger
-import os
 
 #Define type hints
 Transform = Callable[[Image.Image], torch.Tensor]
