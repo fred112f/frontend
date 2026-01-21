@@ -1,10 +1,10 @@
 # Running Vertex AI Job
 
-This markdown provides a description of how to run model training with Vertex AI for our application.
+This markdown provides a description of how to run model-training with Vertex AI for our application. The job can be run straight away (Step 4.) provided the previous Steps 1-3. have been executed at least once (respectively, these steps are: uploading the docker image, creating a service account, and writing a custom job.yaml with the wandb API key). 
 
 ### 1) Build docker image and push to GCP artifact registry
 ```bash
-docker build -f dockerfiles/train_gcp.dockerfile -t europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest --platform linux/amd64 --push .
+docker build -f dockerfiles/train_vertex.dockerfile -t europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/trainvtx:latest --platform linux/amd64 --push .
 ```
 If running on a Mac remove the ```--platform linux/amd64``` flag.
 
@@ -26,7 +26,7 @@ gcloud projects add-iam-policy-binding decent-seeker-484209-j2 \
   --role="roles/aiplatform.user"
 ```
 
-### 3) Configure the ```vertex_ai_job.yaml``` with WANDB_API_KEY
+### 3) Configure the ```vertex_ai_job.yaml``` with ```WANDB_API_KEY```
 Providing secrets to a Vertex AI job is non-trivial; we suggest the user creates a custom ```vertex_ai_job.yaml``` and insert their ```WANDB_API_KEY``` using the provided template: ```vertex_ai_job_template.yaml```.
 ```bash
 worker_pool_specs:
@@ -51,6 +51,7 @@ gcloud ai custom-jobs create \
   --config=vertex_ai_job.yaml 
 ```
 The trained model is saved to the ```AIP_MODEL_DIR```
+
 ---
 
 # Appendix
@@ -80,7 +81,7 @@ gcloud run jobs create my-training-job \
   --image=europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest \
   --region=europe-west1 \
   --service-account=my-training-job-sa@decent-seeker-484209-j2.iam.gserviceaccount.com \
-  --set-env-vars="AIP_MODEL_DIR=gs://dtu-mlops-exam-project-data/models,WANDB_API_KEY=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,WANDB_ENTITY=krusand-danmarks-tekniske-universitet-dtu,WANDB_PROJECT=MLOps-exam" \
+  --set-env-vars="AIP_MODEL_DIR=gs://dtu-mlops-exam-project-data/models,WANDB_API_KEY=YOUR_SECRET_HERE" \
   --memory=16Gi \
   --cpu=4 \
   --max-retries=0
