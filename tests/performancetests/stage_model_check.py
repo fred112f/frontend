@@ -3,9 +3,7 @@ import os
 import time
 from exam_project.model import BaseANN, BaseCNN, ViTClassifier
 import torch
-from dotenv import load_dotenv
 
-load_dotenv()
 
 def load_model(artifact):
 
