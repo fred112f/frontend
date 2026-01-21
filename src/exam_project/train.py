@@ -19,6 +19,7 @@ def train(cfg):
     params: 
         cfg: .yaml using Hydra
     """
+
     hydra_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
     # Add a log file to the logger
     logger.remove()
@@ -26,6 +27,7 @@ def train(cfg):
     logger.info("Training script started")
     logger.debug(cfg)
     cfg_omega = OmegaConf.to_container(cfg)
+    model_name = hydra.core.hydra_config.HydraConfig.get().runtime.choices.models
 
     run = wandb.init(
         project=cfg.logger.wandb.project,
@@ -70,9 +72,10 @@ def train(cfg):
     logger.info("Creating artifact")
     # Create an artifact
     artifact = wandb.Artifact(
-        name=f"emotion-model-{cfg.models._target_}",
-        type="model",
-        description="Emotion recognition model"
+        name=f"emotion-model-{model_name}",
+        type="Model",
+        description="Emotion recognition model",
+        metadata={'architecture': model_name}
     )
     logger.info(artifact)
     # Add the model file to the artifact
@@ -82,12 +85,15 @@ def train(cfg):
     wandb.log_artifact(artifact)
     logger.info("Artifact created and logged")
     logger.info("Linking artifact")
+
     # Link to model registry
+    target_path = f"krusand-danmarks-tekniske-universitet-dtu-org/wandb-registry-fer-model/{model_name}"
     wandb.run.link_artifact(
         artifact=artifact,
-        target_path="krusand-danmarks-tekniske-universitet-dtu-org/wandb-registry-fer-model/Model new",
-        aliases=["latest"]
+        target_path=target_path,
+        aliases=["latest", "staging"]
     )
+    logger.info(target_path)
     logger.info("Artifact linked")
     run.finish()
     logger.info("Training script finished")
