@@ -20,6 +20,7 @@ jobs:
         id: set_output
         run: |
           echo "model_name=${{ github.event.client_payload.artifact_version_string }}" >> $GITHUB_OUTPUT
+          echo "model_architecture=${{ github.event.client_payload.model_architecture }}" >> $GITHUB_OUTPUT
   
   test_model:
     runs-on: ubuntu-latest
@@ -29,10 +30,13 @@ jobs:
       WANDB_ENTITY_ORG: ${{ secrets.WANDB_ENTITY_ORG }}
       WANDB_PROJECT: ${{ secrets.WANDB_PROJECT }}
       MODEL_NAME: ${{ needs.identify_event.outputs.model_name }}
+      MODEL_ARCHITECTURE: ${{ needs.identify_event.outputs.model_architecture }}
+
     steps:
-    - name: Echo model name
+    - name: Echo model info
       run: |
         echo "Model name: $MODEL_NAME"
+        echo "Model architecture: $MODEL_ARCHITECTURE"
 
     - name: Checkout code
       uses: actions/checkout@v5
