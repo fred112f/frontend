@@ -52,6 +52,6 @@ jobs:
       run: |
         uv sync --locked
 
-    - name: Test model
+    - name: Run model test
       run: |
-        pytest tests/performancetests/stage_model_check.py
+        uv run tests/performancetests/stage_model_check.py
