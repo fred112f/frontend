@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       model_name: ${{ steps.set_output.outputs.model_name }}
+      model_architecture: ${{ steps.set_output.outputs.model_architecture }}
     steps:
       - name: Check event type
         run: |
