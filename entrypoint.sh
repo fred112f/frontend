@@ -24,7 +24,7 @@ uv run dvc pull data.dvc -r gcsremote --verbose
 
 # Run training
 echo "About to uv run train script..."
-uv run src/exam_project/train_gcp.py
+uv run src/exam_project/train.py
 
 # Run this at the command line
 : <<'COMMENT'
@@ -42,6 +42,7 @@ docker run  --rm \
 Remote image local run
 ------------
 Push docker image to artifact registry, run it locally OR run it via Vertex AI
+Note: Run locally make sure NOT to specify platform; for Vertex AI specify --platform linux/amd64
 docker build -f dockerfiles/train_gcp.dockerfile -t europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest --platform linux/amd64 --push .
 
 #Mount local folder models/ to app/models and run

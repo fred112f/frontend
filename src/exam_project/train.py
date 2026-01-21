@@ -11,6 +11,21 @@ import wandb
 from omegaconf import OmegaConf
 import os
 
+from google.cloud import storage
+import pytorch_lightning
+
+DATA_DIR = os.environ.get("DATA_DIR", "data/processed/")
+MODEL_DIR = os.environ.get("AIP_MODEL_DIR", "models")
+
+NUM_WORKERS = int(os.getenv("NUM_WORKERS",f"{min(4, os.cpu_count())}"))
+PERSISTENT_WORKERS = NUM_WORKERS>0
+
+#Make model dir if it doesn't not already exist
+os.makedirs(MODEL_DIR, exist_ok=True)
+
+#Set random seed
+pytorch_lightning.seed_everything(42, workers=True)
+
 @hydra.main(config_path="configs", config_name="train", version_base=None)
 def train(cfg):
     """
@@ -36,8 +51,10 @@ def train(cfg):
 
     checkpoint_callback = ModelCheckpoint(
         monitor='validation_loss',
-        dirpath='models/',
-        filename='emotion-model-{epoch:02d}-{validation_loss:.2f}'
+        mode='min',#i.e. we are aiming for the minimum validation loss
+        dirpath=MODEL_DIR,
+        filename='emotion-model-{epoch:02d}-{validation_loss:.2f}',
+        save_top_k=1
     )
 
     trainer_args = {"max_epochs": cfg.trainer.max_epochs
@@ -50,10 +67,10 @@ def train(cfg):
     logger.debug(f"{trainer_args = }")
     logger.info("Finished cfg setup")
     logger.info("Starting dataloading")
-    train, val, test = load_data(processed_dir='data/processed/')
-    train = torch.utils.data.DataLoader(train, persistent_workers=True, num_workers=9, batch_size=cfg.data.batch_size)
-    val = torch.utils.data.DataLoader(val, persistent_workers=True, num_workers=9, batch_size=cfg.data.batch_size)
-    test = torch.utils.data.DataLoader(test, persistent_workers=True, num_workers=9, batch_size=cfg.data.batch_size)
+    train, val, test = load_data(processed_dir=DATA_DIR)
+    train = torch.utils.data.DataLoader(train, persistent_workers=PERSISTENT_WORKERS, num_workers=NUM_WORKERS, batch_size=cfg.data.batch_size)
+    val = torch.utils.data.DataLoader(val, persistent_workers=PERSISTENT_WORKERS, num_workers=NUM_WORKERS, batch_size=cfg.data.batch_size)
+    test = torch.utils.data.DataLoader(test, persistent_workers=PERSISTENT_WORKERS, num_workers=NUM_WORKERS, batch_size=cfg.data.batch_size)
     logger.info("Finished dataloading")
 
     logger.info("Loading model")
@@ -76,7 +93,18 @@ def train(cfg):
     )
     logger.info(artifact)
     # Add the model file to the artifact
-    artifact.add_file(best_model_path)
+    if best_model_path.startswith("gs://"):#W&B cannot add unless file is local
+        local_model_path = "/tmp/" + os.path.basename(best_model_path)  # Temp local path
+
+        # Download from GCS
+        client = storage.Client()
+        bucket_name, blob_path = best_model_path[5:].split("/", 1)
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(blob_path)
+        blob.download_to_filename(local_model_path)
+        artifact.add_file(local_model_path)  # update to local path
+    else:
+        artifact.add_file(best_model_path)
     
     # Log the artifact
     wandb.log_artifact(artifact)
