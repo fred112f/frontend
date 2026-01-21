@@ -73,7 +73,8 @@ def test_staging_against_production_model():
     
 def main():
     should_promote = all([test_model_speed(), test_staging_against_production_model()])
-
+    should_promote = 'true' if should_promote else 'false' # Used for better yaml handling
+        
     if "GITHUB_OUTPUT" in os.environ:
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             print(f"promote={should_promote}", file=f)
