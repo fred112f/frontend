@@ -1,4 +1,3 @@
-import io
 import os
 import tempfile
 
@@ -157,11 +156,11 @@ def main(cfg):
 
         # Comparing evaluation metrics
         print(f"Evaluating {model_name}: \n")
-        print(f"\t On MMA (FER with colour)")
+        print("\t On MMA (FER with colour)")
         print(f"\t\t Accuracy: {mma_acc:.4f}")
         print(f"\t\t F1-score: {mma_f1:.4f} \n")
         
-        print(f"\t On FER")
+        print("\t On FER")
         print(f"\t\t Accuracy: {fer_acc:.4f}")
         print(f"\t\t F1-score: {fer_f1:.4f} \n")
 
