@@ -92,13 +92,14 @@ def train(cfg):
         name=f"emotion-model-{model_name}",
         type="Model",
         description="Emotion recognition model",
-        metadata={'architecture': model_name}
+        metadata={'architecture': model_name, 'device': cfg.trainer.accelerator}
     )
     logger.info(artifact)
     # Add the model file to the artifact
-    if best_model_path.startswith("gs://"):#W&B cannot add unless file is local
+    if best_model_path.startswith("gs://"): #W&B cannot add unless file is local
         local_model_path = "/tmp/" + os.path.basename(best_model_path)  # Temp local path
-
+        logger.info(f"{local_model_path = }")
+        
         # Download from GCS
         client = storage.Client()
         bucket_name, blob_path = best_model_path[5:].split("/", 1)

@@ -3,7 +3,7 @@ default_root_dir: ${paths.output_dir}
 min_epochs: 1 # prevents early stopping
 max_epochs: 10
 
-accelerator: auto
+accelerator: cpu
 
 # Limits train batches to train quicker for sweeping
 limit_train_batches: 1.0
