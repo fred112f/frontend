@@ -6,9 +6,14 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Optional
 
+import torch
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
+from google.cloud import storage
 from PIL import Image
+from torchvision import transforms
+
+from exam_project.model import BaseANN, BaseCNN, ViTClassifier
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,8 +44,6 @@ def get_available_models():
     if USE_GCS:
         # Load models from GCS bucket
         try:
-            from google.cloud import storage
-
             storage_client = storage.Client()
             bucket = storage_client.bucket(GCS_BUCKET_NAME)
 
@@ -69,25 +72,25 @@ def get_available_models():
         # Load models from local filesystem
         models_dir = Path("models")
         if models_dir.exists():
-            for model_subdir in models_dir.iterdir():
-                if model_subdir.is_dir() and model_subdir.name in ["cnn", "ann", "vit"]:
+            for model_name in ["cnn", "ann", "vit"]:
+                model_subdir = models_dir / model_name
+                if model_subdir.is_dir():
                     ckpt_files = list(model_subdir.glob("*.ckpt"))
                     if ckpt_files:
-                        for ckpt_file in ckpt_files:
-                            try:
-                                loss = float(str(ckpt_file).split('=')[-1].replace('.ckpt', ''))
-                                available[model_subdir.name] = {
-                                    "path": str(ckpt_file),
-                                    "validation_loss": loss,
-                                    "filename": ckpt_file.name
-                                }
-                            except ValueError:
-                                available[model_subdir.name] = {
-                                    "path": str(ckpt_file),
-                                    "validation_loss": None,
-                                    "filename": ckpt_file.name
-                                }
-                            break  # Use first .ckpt file for this model type
+                        ckpt_file = ckpt_files[0]  # Get first .ckpt file
+                        try:
+                            loss = float(str(ckpt_file).split('=')[-1].replace('.ckpt', ''))
+                            available[model_name] = {
+                                "path": str(ckpt_file),
+                                "validation_loss": loss,
+                                "filename": ckpt_file.name
+                            }
+                        except ValueError:
+                            available[model_name] = {
+                                "path": str(ckpt_file),
+                                "validation_loss": None,
+                                "filename": ckpt_file.name
+                            }
 
         logger.info(f"Loaded models from local filesystem: {list(available.keys())}")
 
@@ -106,9 +109,6 @@ def load_model_checkpoint(model_name: Optional[str] = None):
     logger.info(f"Loading model (model_name={model_name})...")
 
     try:
-        import torch
-        from exam_project.model import BaseCNN, BaseANN, ViTClassifier
-
         device = torch.device("cpu")
 
         # Get available models
@@ -138,8 +138,6 @@ def load_model_checkpoint(model_name: Optional[str] = None):
 
         # Load from GCS if path starts with gs://
         if checkpoint_path.startswith("gs://"):
-            from google.cloud import storage
-
             bucket_name = checkpoint_path.split("/")[2]
             blob_path = "/".join(checkpoint_path.split("/")[3:])
 
@@ -169,8 +167,6 @@ def load_model_checkpoint(model_name: Optional[str] = None):
 
 
 def get_image_transform():
-    from torchvision import transforms
-
     return transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5], std=[0.5])
@@ -213,15 +209,13 @@ async def predict(
         raise HTTPException(status_code=401, detail="Invalid authorization header")
 
     if accept != "application/json":
-        raise HTTPException(status_code=401, detail="Invalid accept header")
+        raise HTTPException(status_code=400, detail="Invalid accept header")
 
     load_model_checkpoint(model_name=model_name)
 
     emotion_labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
 
     try:
-        import torch
-
         contents = await file.read()
         logger.info(f"Read {len(contents)} bytes from file")
 
