@@ -6,7 +6,7 @@ This markdown provides a description of how to run model-training with Vertex AI
 ```bash
 docker build -f dockerfiles/train_vertex.dockerfile -t europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/trainvtx:latest --platform linux/amd64 --push .
 ```
-If running on a Mac remove the ```--platform linux/amd64``` flag.
+If running the image *locally* on a Mac remove the ```--platform linux/amd64``` flag.
 
 ### 2) Enable Vertex AI, and create service account for training
 ```bash
