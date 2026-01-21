@@ -3,7 +3,7 @@ set -e   # exit if any command fails
 
 #Check for GOOGLE_APPLICATION_CREDENTIALS is set
 if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-    echo "GOOGLE_APPLICATION_CREDENTIALS not set. Assuming running on Cloud Run Job with default credentials."
+    echo "GOOGLE_APPLICATION_CREDENTIALS not set. Assuming running on GCP with default credentials."
 else
     echo "Using GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_APPLICATION_CREDENTIALS"
 fi
@@ -19,7 +19,7 @@ echo "About to uv run dvc remote add..."
 uv run dvc remote add -f gcsremote gs://dtu-mlops-exam-project-data || true
 
 # Pull the dataset
-echo "About to uv run dvc pull; this takes ~3-5mins on GCP..."
+echo "About to uv run dvc pull..."
 uv run dvc pull data.dvc -r gcsremote --verbose
 
 # Run training
@@ -67,7 +67,7 @@ gcloud run jobs create my-training-job \
   --image=europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest \
   --region=europe-west1 \
   --service-account=my-training-job-sa@decent-seeker-484209-j2.iam.gserviceaccount.com \
-  --set-env-vars="..." \
+  --set-env-vars="AIP_MODEL_DIR=gs://dtu-mlops-exam-project-data/models,WANDB_API_KEY=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,WANDB_ENTITY=krusand-danmarks-tekniske-universitet-dtu,WANDB_PROJECT=MLOps-exam" \
   --memory=16Gi \
   --cpu=4 \
   --max-retries=0
@@ -76,26 +76,28 @@ gcloud run jobs create my-training-job \
 gcloud run jobs execute my-training-job \
   --region=europe-west1
 
-Using Vertex AI or other (not successful yet)
+Using Vertex AI
 ------------
+0) Enable Vertex AI
+gcloud services enable aiplatform.googleapis.com
 
-#Run using vertex ai
+1) Create service account and add roles:
+
+gcloud iam service-accounts create vertexai-training-sa \
+  --display-name="VertexAI Training Job Service Account for DTU MLOps"
+
+gcloud projects add-iam-policy-binding decent-seeker-484209-j2 \
+  --member="serviceAccount:vertexai-training-sa@decent-seeker-484209-j2.iam.gserviceaccount.com" \
+  --role="roles/storage.objectAdmin"
+
+gcloud projects add-iam-policy-binding decent-seeker-484209-j2 \
+  --member="serviceAccount:vertexai-training-sa@decent-seeker-484209-j2.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+
+2) Create Vertex AI custom job (Note Creating the Job IS Running the Job)
+
 gcloud ai custom-jobs create \
   --region=europe-west1 \
-  --display-name=exam-training-job \
-  --worker-pool-spec=\
-machine-type=n1-standard-4,\
-replica-count=1,\
-container-image-uri=europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest
-
-#I couldn't get Vertex AI to work, even with simple docker, the job was stuck on pending...try using compute engine instead 
-gcloud compute instances create-with-container mytraingcpcontainer \
-  --zone=europe-west1-b \
-  --container-image=europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp \
-  --scopes=https://www.googleapis.com/auth/cloud-platform
-
-Even the compute engine doesn't work. 
-The reason is (probably) that the VM itself doesn't have permission to 
-read from the artifact registry, therefore it cannot pull the 
-docker image that we want to run.
+  --display-name=vertexai-training-job \
+  --config=vertex_ai_job.yaml 
 COMMENT
