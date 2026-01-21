@@ -72,16 +72,16 @@ docker run  --rm \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/decent-seeker-484209-j2-8707d48bfe74.json:/app/key.json:ro \
   -e GOOGLE_APPLICATION_CREDENTIALS=/app/key.json \
-  --name trainingcpcontainer europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest
+  --name trainvtxcontainer europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/trainvtx:latest
 ```
 
 ### C) Train via Cloud Run
 ```bash
 gcloud run jobs create my-training-job \
-  --image=europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/traingcp:latest \
+  --image=europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/trainvtx:latest \
   --region=europe-west1 \
   --service-account=my-training-job-sa@decent-seeker-484209-j2.iam.gserviceaccount.com \
-  --set-env-vars="AIP_MODEL_DIR=gs://dtu-mlops-exam-project-data/models,WANDB_API_KEY=YOUR_SECRET_HERE" \
+  --set-env-vars="AIP_MODEL_DIR=gs://dtu-mlops-exam-project-data/models/vertex_training/,WANDB_API_KEY=YOUR_SECRET_HERE" \
   --memory=16Gi \
   --cpu=4 \
   --max-retries=0

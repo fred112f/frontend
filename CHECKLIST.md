@@ -87,7 +87,7 @@ will check the repositories and the code to verify your answers.
 9. ❌ Add a continues workflow that triggers when changes to the model registry is made (M19)
 10. ✅ Create a data storage in GCP Bucket for your data and link this with your data version control setup (M21)
 11. ❌ Create a trigger workflow for automatically building your docker images (M21)
-12. ❌ Get your model training in GCP using either the Engine or Vertex AI (M21)
+12. ✅ Get your model training in GCP using either the Engine or Vertex AI (M21)
 13. ❌ Create a FastAPI application that can do inference using your model (M22)
 14. ❌ Deploy your model in GCP using either Functions or Run as the backend (M23)
 15. ❌ Write API tests for your application and setup continues integration for these (M24)
