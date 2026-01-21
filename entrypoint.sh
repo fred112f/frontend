@@ -13,7 +13,6 @@ fi
 cd /app
 
 #Pull data
-#uv run dvc pull -f gcsremote gs://dtu-mlops-exam-project-data
 # Make sure the remote is set
 echo "About to uv run dvc remote add..."
 uv run dvc remote add -f gcsremote gs://dtu-mlops-exam-project-data || true
