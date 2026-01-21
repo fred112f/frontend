@@ -12,7 +12,7 @@ def load_model(artifact):
         overrides={"entity": os.getenv("WANDB_ENTITY_ORG"), "project": os.getenv("WANDB_PROJECT")},
     )
 
-    artifact = api.artifact(f"{os.getenv("WANDB_ENTITY_ORG")}/{os.getenv("WANDB_REGISTRY")}/{os.getenv("MODEL_NAME")}",type="model")
+    artifact = api.artifact(f"{os.getenv("MODEL_NAME")}",type="model")
     artifact.download(root="./artifacts")
     file_name = artifact.files()[0].name
     return BaseANN.load_from_checkpoint(f"./artifacts/{file_name}")
