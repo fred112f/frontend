@@ -1,3 +1,5 @@
+import hydra
+from hydra.utils import instantiate
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,11 +10,18 @@ from sklearn.metrics import accuracy_score
 
 class BaseCNN(LightningModule):
     """Our custom CNN to classify facial expressions."""
-    def __init__(self, img_size: int = 48, output_dim: int = 7, lr: float = 1e-3):
+    def __init__(self, 
+                 img_size: int = 48, 
+                 output_dim: int = 7, 
+                 lr: float = 1e-3,
+                 dropout: float = 0.2,
+                 ) -> None:
         super(BaseCNN, self).__init__()
 
         self.img_size = img_size
         self.output_dim = output_dim
+        self.lr = lr
+        self.dropout = dropout
 
         # Convolutional layers
         self.conv1 = nn.Conv2d(1, 32, kernel_size=3, padding=1)
@@ -28,7 +37,7 @@ class BaseCNN(LightningModule):
         self.bn4 = nn.BatchNorm2d(256)
 
         self.pool = nn.MaxPool2d(2, 2)
-        self.dropout = nn.Dropout(0.6)   # increased dropout
+        self.dropout = nn.Dropout(self.dropout)   # increased dropout
 
         # Fully connected layers
         self.fc1 = nn.Linear(3*3*256, 256)   # multiplying 
@@ -37,10 +46,6 @@ class BaseCNN(LightningModule):
         # Loss function
         self.loss_fn = nn.NLLLoss()
 
-        # Learning rate
-        self.lr = lr
-
-        self.save_hyperparameters()
 
     def forward(self, x):
         x = self.pool(F.relu(self.bn1(self.conv1(x))))
@@ -65,7 +70,7 @@ class BaseCNN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -80,7 +85,7 @@ class BaseCNN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
 
     
@@ -93,16 +98,22 @@ class BaseANN(LightningModule):
 
     def __init__(
         self,
-        num_classes: int = 7,
-        hidden: tuple[int, ...] = (512, 256),
+        img_size: int = 48,
+        output_dim: int = 7,
+        hidden: tuple[int, ...] = (512,256),
         dropout: float = 0.3,
-        lr: float = 1e-3
+        lr: float = 1e-3,
     ) -> None:
         super().__init__()
-        input_dim = 48 * 48 
+
+        self.img_size = img_size
+        self.output_dim = output_dim
+        self.hidden = hidden
+        self.dropout = dropout
+        self.lr = lr
 
         layers: list[nn.Module] = []
-        prev = input_dim
+        prev = img_size * img_size
 
         for h in hidden:
             layers.extend(
@@ -114,14 +125,10 @@ class BaseANN(LightningModule):
             )
             prev = h
 
-        layers.append(nn.Linear(prev, num_classes)) 
+        layers.append(nn.Linear(prev, output_dim)) 
         self.net = nn.Sequential(*layers)
 
         self.loss_fn = nn.NLLLoss()
-
-        self.lr = lr
-
-        self.save_hyperparameters()
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -143,7 +150,7 @@ class BaseANN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("training_loss", loss)
-        self.log("training_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
     
     def validation_step(self, batch):
@@ -158,7 +165,7 @@ class BaseANN(LightningModule):
         y_pred_class = torch.argmax(y_pred, dim=1)
 
         self.log("validation_loss", loss)
-        self.log("validation_accuracy", accuracy_score(y_true=target, y_pred=y_pred_class))
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
 
     def configure_optimizers(self):
@@ -170,19 +177,21 @@ class ViTClassifier(LightningModule):
 
     def __init__(
         self,
-        num_classes: int = 7,
+        output_dim: int = 7,
         model_name: str = "google/vit-base-patch16-224-in21k",
-        learning_rate: float = 1e-4,
+        lr: float = 1e-4,
         freeze_backbone: bool = False,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters()
-        self.learning_rate = learning_rate
+        self.model_name = model_name
+        self.lr = lr
+        self.freeze_backbone = freeze_backbone
+        self. output_dim = output_dim
 
         # Load pretrained ViT model with custom number of classes
         self.vit = ViTForImageClassification.from_pretrained(
             model_name,
-            num_labels=num_classes,
+            num_labels=output_dim,
             ignore_mismatched_sizes=True,
         )
 
@@ -223,42 +232,42 @@ class ViTClassifier(LightningModule):
 
     def training_step(self, batch):
         img, target = batch
-        logits = self(img)
-        loss = self.loss_fn(logits, target)
-        self.log("train_loss", loss, prog_bar=True)
+        y_pred = self(img) 
+        loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+        
+        self.log("training_loss", loss)
+        self.log("training_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
         return loss
-
-    def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
-
     
-if __name__ == "__main__":
-    model = BaseCNN(img_size=48, output_dim=7)
+    def validation_step(self, batch):
+        img, target = batch
+        y_pred = self(img)  
+        loss = self.loss_fn(y_pred, target)
+        y_pred_class = torch.argmax(y_pred, dim=1)
+
+        self.log("validation_loss", loss)
+        self.log("validation_accuracy", accuracy_score(y_true=target.cpu(), y_pred=y_pred_class.cpu()))
+        return loss
+    
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=self.lr)
+
+
+@hydra.main(config_path="configs", config_name="train", version_base=None)
+def main(cfg):
     # Create a random input tensor with shape (batch=1, channels=1, H=img_size, W=img_size)
-    x = torch.rand(2, 1, model.img_size, model.img_size)
+    x = torch.rand(2, 1, cfg.models.img_size, cfg.models.img_size)
+
+    # Instantiate model
+    model = instantiate(cfg.models)
+
+    # Sample output for CNN
     output = model(x)
     print(f"Input: {x}")
     print(f"Output shape of model: {output.shape}")
     print(f"Output: {torch.exp(output)}")
 
 
-
-    ann = BaseANN(num_classes=7, hidden=(512, 256), dropout=0.3)
-
-    # Create a random input tensor: (batch=2, channels=1, H=48, W=48)
-    x = torch.rand(2, 1, 48, 48)
-    output = ann(x)
-
-    print(f"Output shape of model: {output.shape}")  # [2, 7]
-    print(f"Output (probabilities): {torch.exp(output)}")
-
-    # Example "batch" for training_step
-    y = torch.randint(0, 7, (2,), dtype=torch.long)
-    loss = ann.training_step((x, y))
-    print(f"Loss: {loss.item():.4f}")
-
-    vit_model = ViTClassifier(num_classes=7, freeze_backbone=True)
-    x = torch.rand(2, 1, 48, 48)  # Grayscale 48x48 images
-    output = vit_model(x)
-    print(f"Output shape of ViT model: {output.shape}")  # [2, 7]
-    print(f"Output (probabilities): {F.softmax(output, dim=1)}")
+if __name__ == "__main__":
+    main()

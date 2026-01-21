@@ -12,29 +12,38 @@ authors = [
 
 keywords = ["machine learning", "MLOps"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 3 - pha",
   "Programming Language :: Python :: 3",
 ]
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "dvc[gcs]>=3.65.0",
+    "dvc>=3.65.0",
     "dvc-gdrive>=3.0.1",
     "dvc-gs>=3.0.2",
     "fastapi==0.115.6",
+    "functions-framework>=3.7.0",
+    "google-cloud-storage>=2.10.0",
     "hydra-core>=1.3.2",
     "kagglehub>=0.4.0",
     "numpy>=2.4.0",
+    "pandas>=2.0.0",
     "pillow>=12.1.0",
     "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.6",
     "pytorch-lightning>=2.6.0",
+    "requests>=2.31.0",
     "scikit-learn>=1.8.0",
+    "streamlit>=1.28.0",
     "torch==2.6.0",
     "torchvision>=0.21.0",
     "transformers>=4.57.3",
     "typer==0.15.1",
     "uvicorn==0.34.0",
     "wandb>=0.24.0",
+    "torchmetrics>=1.8.2",
+    "loguru>=0.7.3",
+    "matplotlib>=3.10.8",
 ]
 
 [dependency-groups]
@@ -95,6 +104,7 @@ exclude_lines = [
 ]
 
 [project.scripts]
-train = "exam_project.train:app"
-evaluate = "exam_project.evaluate:app"
+train = "exam_project.train:train"
+evaluate = "exam_project.evaluate:evaluate"
+test = "exam_project.test:test"
 

@@ -9,6 +9,7 @@ from PIL import Image
 import torch
 from torchvision import transforms
 from torchvision.datasets import DatasetFolder
+from loguru import logger
 
 #Define type hints
 Transform = Callable[[Image.Image], torch.Tensor]
@@ -99,16 +100,16 @@ def save_data(train_dataset:torch.utils.data.Dataset, test_dataset:torch.utils.d
 
 def preprocess_data(raw_dir:str, processed_dir:str, trainvalsplit:float, seed:int)->None:
     """Load data from data/raw/ and save .pt files in data/preprocessed"""
+
     #Get transform and load data/raw/
     transform = get_transform()
     train_dataset = get_dataset(os.path.join(raw_dir,'train'), transform)
     test_dataset  = get_dataset(os.path.join(raw_dir,'test'), transform)
 
     #Save datasets in data/processed
-    print ('Converting datasets .pt files...')
+    logger.info('Converting datasets .pt files.')
     save_data(train_dataset, test_dataset, processed_dir, trainvalsplit, seed)
     save_metadata(train_dataset.class_to_idx, processed_dir)
-    print ('Done.')
 
 
 def load_metadata(processed_dir:str)->torch.Tensor:
@@ -118,6 +119,7 @@ def load_metadata(processed_dir:str)->torch.Tensor:
 
 def load_data(processed_dir:str) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset, torch.utils.data.Dataset]:
     """Return train, val and test datasets for FER2013."""
+
     train_images = torch.load(os.path.join(processed_dir,"train_images.pt"))
     train_target = torch.load(os.path.join(processed_dir,"train_target.pt"))
     val_images = torch.load(os.path.join(processed_dir,"val_images.pt"))
@@ -128,16 +130,23 @@ def load_data(processed_dir:str) -> tuple[torch.utils.data.Dataset, torch.utils.
     train_set = torch.utils.data.TensorDataset(train_images, train_target)
     val_set = torch.utils.data.TensorDataset(val_images, val_target)
     test_set = torch.utils.data.TensorDataset(test_images, test_target)
+
     return train_set, val_set, test_set
 
-@hydra.main(version_base="1.1",config_name="config.yaml")
+@hydra.main(config_path="configs", config_name="data", version_base=None)
 def main(cfg):
+    hydra_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+    # Add a log file to the logger
+    logger.remove()
+    logger.add(os.path.join(hydra_path, "loguru_logging.log"), level=cfg.debug.level)
+
+    logger.info("Data download script started")
     #Set KAGGLEHUB_CACHE environment variable
     os.environ["KAGGLEHUB_CACHE"] = os.path.join(cfg.paths.data_root, cfg.paths.raw_str)
 
     #Download latest version of data from kaggle
     path = kagglehub.dataset_download(cfg.paths.kaggle_id)
-    print("Path to dataset files:", path)
+    logger.info(f"Path to dataset files: {path}")
 
     #Define directories
     raw_dir = os.path.join(cfg.paths.data_root, f'{cfg.paths.raw_str}/datasets/{cfg.paths.kaggle_id}/versions/{cfg.paths.data_version_path}/')
@@ -151,10 +160,13 @@ def main(cfg):
     assert(os.path.exists(processed_dir))
 
     #Load datasets from data/raw and save .pt images and labels in data/preprocessed    
+    logger.info("Starting preprocessing of data")
     preprocess_data(raw_dir, processed_dir, cfg.hyperparameters.trainvalsplit, seed=cfg.hyperparameters.seed)
-
+    logger.info("Finished preprocessing of data")
     #Load datsets from data/processed
     train_set, val_set, test_set = load_data(processed_dir)
+
+    logger.info("Data download script finished")
 
 if __name__ == "__main__":
     main()
