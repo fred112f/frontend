@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
+
+from hydra import initialize, compose
+from PIL import Image
 import pytest
 import torch
-from pathlib import Path
 from torch.utils.data import Dataset
-from PIL import Image
 
 from exam_project.data import (
     get_transform,
@@ -12,17 +14,19 @@ from exam_project.data import (
     create_processed_dir,
 )
 
-# Constants (hardcoded from data.py to avoid import issues)
-KAGGLE_ID = "msambare/fer2013"
-DATA_VERSION_PATH = "1"
-ROOT = "data"
-RAW_STR = "raw"
 
-EXPECTED_CLASSES = {
-    "angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"
-}
-EXPECTED_IMAGE_SIZE = (48, 48)
-EXPECTED_MODE = "L"
+# loading data config file
+with initialize(version_base=None, config_path="../src/exam_project/configs"):
+    cfg = compose(config_name="data")
+
+# passing values from config file to variables
+KAGGLE_ID = cfg.paths.kaggle_id
+DATA_VERSION_PATH = cfg.paths.data_version_path
+ROOT = cfg.paths.data_root
+RAW_STR = cfg.paths.raw_str
+EXPECTED_CLASSES = set(cfg.meta.expected_classes)
+EXPECTED_IMAGE_SIZE = (cfg.meta.img_size, cfg.meta.img_size)
+EXPECTED_MODE = cfg.meta.expected_mode
 
 
 def get_all_dataset_versions():

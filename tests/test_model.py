@@ -1,9 +1,17 @@
+from hydra import initialize, compose
+from hydra.utils import instantiate
 import pytest
 import torch
+
 from exam_project.model import BaseCNN, BaseANN, ViTClassifier
 
 
-def set_global_seed(seed: int = 42) -> None:
+with initialize(version_base=None, config_path="../src/exam_project/configs"):
+    cfg_data = compose(config_name="data")
+
+SEED = cfg_data.hyperparameters.seed
+
+def set_global_seed(seed: int = SEED) -> None:
     """Set all seeds for reproducibility."""
     torch.manual_seed(seed)
     if torch.cuda.is_available():
@@ -13,21 +21,27 @@ def set_global_seed(seed: int = 42) -> None:
     np.random.seed(seed)
     random.seed(seed)
 
+def load_model_from_config(config_name: str):
+    with initialize(
+        version_base=None,
+        config_path="../src/exam_project/configs/models",
+    ):
+        cfg = compose(config_name=config_name)
+        return instantiate(cfg)
 
 MODELS = [
-    ("BaseCNN", BaseCNN(img_size=48, output_dim=7, lr=1e-3)),
-    ("BaseANN", BaseANN(output_dim=7, hidden=(512, 256), dropout=0.3, lr=1e-3)),
-    ("ViTClassifier", ViTClassifier(output_dim=7, lr=1e-4)),
+    ("BaseCNN", "cnn"),
+    ("BaseANN", "ann"),
+    ("ViTClassifier", "vit"),
 ]
 
 
-@pytest.mark.parametrize(
-    "model_name,model",
-    MODELS,
-    ids=["BaseCNN", "BaseANN", "ViTClassifier"]
-)
+@pytest.mark.parametrize("model_name,config_name", MODELS)
 class TestModels:
     """Combined test suite for all models."""
+    @pytest.fixture
+    def model(self, config_name):
+        return load_model_from_config(config_name)
 
     def test_initialization(self, model_name, model):
         """Test model initialization."""
@@ -72,26 +86,16 @@ class TestModels:
         except AssertionError as e:
             pytest.fail(f"[{model_name}] Optimizer config failed: {e}")
 
-    def test_reproducibility(self, model_name, model):
+    def test_reproducibility(self, model_name, config_name):
         """Test reproducibility with seeding and dropout."""
         x = torch.randn(2, 1, 48, 48)
 
         # Create models with same seed
-        set_global_seed(42)
-        if model_name == "BaseCNN":
-            m1 = BaseCNN(img_size=48, output_dim=7, lr=1e-3)
-        elif model_name == "BaseANN":
-            m1 = BaseANN(output_dim=7, hidden=(512, 256), dropout=0.3, lr=1e-3)
-        else:
-            m1 = ViTClassifier(output_dim=7, lr=1e-4)
+        set_global_seed(SEED)
+        m1 = load_model_from_config(config_name)
 
-        set_global_seed(42)
-        if model_name == "BaseCNN":
-            m2 = BaseCNN(img_size=48, output_dim=7, lr=1e-3)
-        elif model_name == "BaseANN":
-            m2 = BaseANN(output_dim=7, hidden=(512, 256), dropout=0.3, lr=1e-3)
-        else:
-            m2 = ViTClassifier(output_dim=7, lr=1e-4)
+        set_global_seed(SEED)
+        m2 = load_model_from_config(config_name)
 
         try:
             m1.eval()
@@ -126,55 +130,44 @@ class TestModels:
             pytest.fail(f"[{model_name}] Parameters failed: {e}")
 
 
+@pytest.mark.parametrize("model_name,config_name", MODELS)
 class TestModelComparison:
     """Cross-model consistency tests."""
 
-    def test_output_shape_consistency(self):
+    def test_output_shape_consistency(self, model_name, config_name):
         """Test all models produce same output shape."""
-        models = [
-            ("BaseCNN", BaseCNN(img_size=48, output_dim=7)),
-            ("BaseANN", BaseANN(output_dim=7)),
-            ("ViTClassifier", ViTClassifier(output_dim=7)),
-        ]
+        model = load_model_from_config(config_name)
         x = torch.randn(2, 1, 48, 48)
 
-        for name, model in models:
-            try:
-                model.eval()
-                with torch.no_grad():
-                    output = model(x)
-                assert output.shape == (2, 7), f"[{name}] Wrong shape"
-            except AssertionError as e:
-                pytest.fail(str(e))
-
-    def test_device_compatibility(self):
-        """Test model device movement."""
-        model = BaseCNN(img_size=48, output_dim=7)
-        x = torch.randn(2, 1, 48, 48)
-
-        try:
-            model = model.cpu()
-            x = x.cpu()
+        model.eval()
+        with torch.no_grad():
             output = model(x)
-            assert output.device.type == 'cpu', "Device mismatch"
-        except Exception as e:
-            pytest.fail(f"[BaseCNN] Device compatibility failed: {e}")
 
-    def test_gradient_flow(self):
-        """Test gradients flow through model."""
-        model = BaseCNN(img_size=48, output_dim=7)
+        assert output.shape == (2, 7), f"[{model_name}] Wrong shape"
+
+    def test_device_compatibility(self, model_name, config_name):
+        model = load_model_from_config(config_name)
+        x = torch.randn(2, 1, 48, 48)
+
+        model = model.cpu()
+        x = x.cpu()
+
+        output = model(x)
+        assert output.device.type == "cpu", f"[{model_name}] Device mismatch"
+
+    def test_gradient_flow(self, model_name, config_name):
+        model = load_model_from_config(config_name)
         x = torch.randn(2, 1, 48, 48, requires_grad=True)
         y = torch.randint(0, 7, (2,))
 
-        try:
-            output = model(x)
-            loss = model.loss_fn(output, y)
-            loss.backward()
+        output = model(x)
+        loss = model.loss_fn(output, y)
+        loss.backward()
 
-            assert x.grad is not None, "[BaseCNN] No input gradients"
-            assert any(
-                p.grad is not None for p in model.parameters() if p.requires_grad
-            ), "[BaseCNN] No parameter gradients"
-        except Exception as e:
-            pytest.fail(f"[BaseCNN] Gradient flow failed: {e}")
+        assert x.grad is not None, f"[{model_name}] No input gradients"
+        assert any(
+            p.grad is not None
+            for p in model.parameters()
+            if p.requires_grad
+        ), f"[{model_name}] No parameter gradients"
 

@@ -1,0 +1,12 @@
+worker_pool_specs:
+  - machine_spec:
+      machine_type: n1-standard-4
+    replica_count: 1
+    container_spec:
+      image_uri: europe-west1-docker.pkg.dev/decent-seeker-484209-j2/myartifactregistry/trainvtx:latest
+      env:
+        - name: AIP_MODEL_DIR
+          value: gs://dtu-mlops-exam-project-data/models/vertex_training/
+        - name: WANDB_API_KEY
+          value: YOUR_SECRET_HERE
+service_account: vertexai-training-sa@decent-seeker-484209-j2.iam.gserviceaccount.com

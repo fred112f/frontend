@@ -1,13 +1,16 @@
 from pathlib import Path
+from typing import List, Tuple, Union
 
+from pytorch_lightning import LightningModule
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 import torch
+from torch.nn import Module
 from torch.utils.data import DataLoader
+import typer
 
 from exam_project.data import load_data
 from exam_project.model import BaseANN
 
-import typer
 
 ROOT = Path(__file__).resolve().parents[2]    # go two levels up to project root
 DEVICE = 'cuda' if torch.cuda.is_available() else 'mps' if torch.mps.is_available() else 'cpu'
@@ -32,6 +35,41 @@ def load_model(model_file_name: str = "checkpoint.pth", device: str = DEVICE) ->
     model.to(device).eval()
 
     return model
+
+
+def get_predictions(
+        model: Union[Module, LightningModule], 
+        data_loader: DataLoader, 
+        device: torch.device
+        ) -> Tuple[List[int], List[int]]:
+    """
+    Evaluate a PyTorch or Lightning model on a dataset and return predictions and true labels.
+
+    Args:
+        model: nn.Module or LightningModule
+        data_loader: DataLoader providing (inputs, targets)
+        device: torch.device to run the model on
+
+    Returns:
+        Tuple containing:
+            - y_pred: list of predicted class indices
+            - y_true: list of true class indices
+    """
+    y_pred = []
+    y_true = []
+
+    model.eval()
+
+    with torch.no_grad():
+        for data, target in data_loader:
+            data, target = data.to(device), target.to(device)
+            y_true.append(target.item())
+            output = model(data)
+            predicted = output.argmax(dim=1)
+            y_pred.append(predicted.item())
+    
+    return y_pred, y_true
+
 
 @app.command()
 def evaluate_model(model_file_name: str = "checkpoint.pth", 
@@ -59,21 +97,14 @@ def evaluate_model(model_file_name: str = "checkpoint.pth",
     test_loader = DataLoader(test, persistent_workers=True, num_workers=9)
 
     # making predictions on the test set one image at a time
-    y_pred = []
-    y_true = []
-    model.eval()
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            y_true.append(target.item())
-            output = model(data)
-            predicted = output.argmax(dim=1)
-            y_pred.append(predicted.item())
+    y_pred, y_true = get_predictions(model, test_loader, device)
 
+    # computing evaluation metrics
     test_acc = accuracy_score(y_true, y_pred)
     macro_f1 = f1_score(y_true, y_pred, average="macro")
     weighted_f1 = f1_score(y_true, y_pred, average="weighted")
     conf_matrix = confusion_matrix(y_true, y_pred)
+
     eval_dict = {"Test accuracy": test_acc,
                  "Macro F1": macro_f1,
                  "Weighted F1": weighted_f1,
