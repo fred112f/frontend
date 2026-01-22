@@ -34,7 +34,7 @@ st.markdown(
 )
 
 st.title("Emotion Classifier")
-st.write("Upload a facial image, set a manual label, then detect the emotion expressed")
+st.write("Upload a facial image, set a manual label, then detect the emotion expressed. The manual label is not used to detect the emotion expressed.")
 
 with st.sidebar:
     st.header("Configuration")
