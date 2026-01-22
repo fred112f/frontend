@@ -57,6 +57,13 @@ jobs:
       run: |
         uv sync --locked
         
+    - name: Cache DVC storage
+      uses: actions/cache@v4
+      with:
+        path: .dvc/cache
+        key: dvc-cache-${{ runner.os }}-${{ hashFiles('dvc.lock') }}
+        restore-keys: dvc-cache-${{ runner.os }}
+
     - name: Auth with GCP
       uses: google-github-actions/auth@v2
       with:
